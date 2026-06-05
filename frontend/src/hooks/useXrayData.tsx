@@ -12,15 +12,39 @@ interface XrayDataContextType {
 const XrayDataContext = createContext<XrayDataContextType | undefined>(undefined);
 
 export const XrayDataProvider = ({ children }: { children: ReactNode }) => {
+  // Clear old localStorage data to fix 431 error
+  useEffect(() => {
+    const stored = localStorage.getItem("smilo_xray_reports");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Clean existing reports by removing large image fields
+          const cleaned = parsed.map((r: any) => {
+            const { original_image, segmented_image, imageUrl, ...rest } = r;
+            return rest;
+          });
+          localStorage.setItem("smilo_xray_reports", JSON.stringify(cleaned));
+        }
+      } catch (e) {
+        localStorage.removeItem("smilo_xray_reports");
+      }
+    }
+  }, []);
+
   const [reports, setReports] = useState<XrayAnalysisResult[]>(() => {
     // Load from localStorage on init
     const stored = localStorage.getItem("smilo_xray_reports");
     return stored ? JSON.parse(stored) : [];
   });
 
-  // Save to localStorage whenever reports change
+  // Save to localStorage whenever reports change (without large image fields)
   useEffect(() => {
-    localStorage.setItem("smilo_xray_reports", JSON.stringify(reports));
+    const cleanedReports = reports.map(report => {
+      const { original_image, segmented_image, imageUrl, ...rest } = report;
+      return rest;
+    });
+    localStorage.setItem("smilo_xray_reports", JSON.stringify(cleanedReports));
   }, [reports]);
 
   const addReport = (report: XrayAnalysisResult) => {

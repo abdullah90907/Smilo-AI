@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { useXrayData } from "@/hooks/useXrayData";
+import XrayImageWithDetections from "@/components/XrayImageWithDetections";
 import {
   ArrowLeft,
   FileImage,
@@ -10,12 +11,20 @@ import {
   Download,
   Printer,
   Share2,
-  Activity,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+// Simple component to show image without any detections
+function SimpleXrayImage({ imageUrl, alt }: { imageUrl: string; alt: string }) {
+  return (
+    <div className="relative rounded-lg overflow-hidden bg-muted">
+      <img src={imageUrl} alt={alt} className="w-full h-auto" />
+    </div>
+  );
+}
 
 export default function UserReportDetail() {
   const { id } = useParams<{ id: string }>();
@@ -144,21 +153,20 @@ export default function UserReportDetail() {
           </CardContent>
         </Card>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* X-ray Image */}
+        {/* Three sections vertically */}
+        <div className="grid gap-8">
+          {/* 1. Original X-ray Image without detections */}
           <Card>
             <CardHeader>
-              <CardTitle>X-ray Image</CardTitle>
+              <CardTitle className="text-xl">Original X-ray</CardTitle>
+              <CardDescription>Original image without any detections</CardDescription>
             </CardHeader>
-            <CardContent>
-              {report.imageUrl ? (
-                <div className="rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={report.imageUrl}
-                    alt={report.filename}
-                    className="w-full h-auto"
-                  />
-                </div>
+            <CardContent className="p-2">
+              {report.original_image_url || report.original_image || report.imageUrl ? (
+                <SimpleXrayImage
+                  imageUrl={report.original_image_url || report.original_image || report.imageUrl}
+                  alt={report.filename}
+                />
               ) : (
                 <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
                   <FileImage className="w-16 h-16 text-muted-foreground" />
@@ -167,51 +175,98 @@ export default function UserReportDetail() {
             </CardContent>
           </Card>
 
-          {/* Findings Details */}
+          {/* 2. Segmented Teeth Extracted */}
           <Card>
             <CardHeader>
-              <CardTitle>Detection Details</CardTitle>
+              <CardTitle className="text-xl">Segmented Teeth</CardTitle>
+              <CardDescription>Extracted teeth from X-ray</CardDescription>
             </CardHeader>
-            <CardContent>
-              {report.findings.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500" />
-                  <p className="font-semibold mb-1">No Issues Detected</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your X-ray scan appears healthy
-                  </p>
-                </div>
+            <CardContent className="p-2">
+              {report.visual_extracted_url || report.segmented_image ? (
+                <SimpleXrayImage
+                  imageUrl={report.visual_extracted_url || report.segmented_image}
+                  alt={report.filename}
+                />
               ) : (
-                <div className="space-y-3">
-                  {report.findings.map((finding, index) => (
-                    <div
-                      key={index}
-                      className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <p className="font-semibold">Detection #{index + 1}</p>
-                        <Badge variant="secondary">
-                          {Math.round(finding.confidence * 100)}% confident
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Class: <span className="font-medium text-foreground">{finding.class}</span>
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                        <div>
-                          <span className="font-medium">Position:</span> x:{Math.round(finding.box[0])}, y:{Math.round(finding.box[1])}
-                        </div>
-                        <div>
-                          <span className="font-medium">Size:</span> {Math.round(finding.box[2] - finding.box[0])} × {Math.round(finding.box[3] - finding.box[1])}px
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="aspect-video rounded-lg bg-muted flex items-center justify-center flex-col">
+                  <FileImage className="w-16 h-16 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">Segmented image not available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 3. Overlay with Caries Detections */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Caries Detection</CardTitle>
+              <CardDescription>AI caries detection on overlay</CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+              {report.overlay_url || report.segmented_image || report.original_image || report.imageUrl ? (
+                <XrayImageWithDetections
+                  imageUrl={report.overlay_url || report.segmented_image || report.original_image || report.imageUrl}
+                  detections={report.findings}
+                  alt={report.filename}
+                />
+              ) : (
+                <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                  <FileImage className="w-16 h-16 text-muted-foreground" />
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
+
+        {/* Findings Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detection Details</CardTitle>
+            {report.models_used && (
+              <CardDescription className="mt-2">
+                Models used: {report.models_used.segmentation && "Teeth Segmentation, "}{report.models_used.caries_detection && "Caries Detection"}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            {report.findings.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500" />
+                <p className="font-semibold mb-1">No Issues Detected</p>
+                <p className="text-sm text-muted-foreground">
+                  Your X-ray scan appears healthy
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {report.findings.map((finding, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-semibold">Detection #{index + 1}</p>
+                      <Badge variant="secondary">
+                        {Math.round(finding.confidence * 100)}% confident
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Class: <span className="font-medium text-foreground">{finding.class}</span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>
+                        <span className="font-medium">Position:</span> x:{Math.round(finding.box[0])}, y:{Math.round(finding.box[1])}
+                      </div>
+                      <div>
+                        <span className="font-medium">Size:</span> {Math.round(finding.box[2] - finding.box[0])} × {Math.round(finding.box[3] - finding.box[1])}px
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Next Steps */}
         {report.total_issues > 0 && (

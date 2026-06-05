@@ -181,13 +181,20 @@ export default function UserReports() {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-6">
                       {/* Image Preview */}
-                      <div className="w-32 h-32 rounded-xl bg-muted overflow-hidden flex-shrink-0">
+                      <div className="w-32 h-32 rounded-xl bg-muted overflow-hidden flex-shrink-0 relative">
                         {report.imageUrl ? (
-                          <img
-                            src={report.imageUrl}
-                            alt={report.filename}
-                            className="w-full h-full object-cover"
-                          />
+                          <>
+                            <img
+                              src={report.imageUrl}
+                              alt={report.filename}
+                              className="w-full h-full object-cover"
+                            />
+                            {report.total_issues > 0 && (
+                              <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                                {report.total_issues}
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <FileImage className="w-12 h-12 text-muted-foreground" />

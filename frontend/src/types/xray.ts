@@ -6,6 +6,11 @@ export interface XrayDetection {
   class: string;
 }
 
+export interface ModelsUsed {
+  segmentation: boolean;
+  caries_detection: boolean;
+}
+
 export interface XrayAnalysisResult {
   id: string;
   filename: string;
@@ -15,7 +20,14 @@ export interface XrayAnalysisResult {
   severity_level: "Healthy" | "Mild" | "Severe";
   recommendation: string;
   timestamp: string;
-  imageUrl: string; // Base64 or URL to image
+  imageUrl?: string; // Base64 original image (backward compatible)
+  original_image?: string; // Base64 original image (backward compatible)
+  segmented_image?: string; // Base64 segmented image (backward compatible)
+  case_id?: string;
+  overlay_url?: string;
+  visual_extracted_url?: string;
+  original_image_url?: string;
+  models_used?: ModelsUsed;
 }
 
 export interface UserStats {

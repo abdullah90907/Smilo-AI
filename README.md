@@ -404,9 +404,8 @@ This project is developed for **educational purposes** as part of a Final Year P
 ## 👥 Team
 
 **Smilo AI Development Team**  
-- Backend & AI: [Your Name]
-- Frontend & UI: [Your Name]
-- Dataset & Training: [Your Name]
+- Abdullah Siddique
+- Mohsin
 
 ---
 
@@ -414,7 +413,7 @@ This project is developed for **educational purposes** as part of a Final Year P
 
 For questions, support, or collaboration:
 - **GitHub Issues**: [Report bugs/issues](https://github.com/abdullah90907/Smilo-AI/issues)
-- **Email**: [your-email@example.com]
+- **Email**: [abdullahsiddique773@gmail.com]
 
 ---
 

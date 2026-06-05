@@ -58,6 +58,9 @@ export default function UserOverview() {
         id: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toISOString(),
         imageUrl,
+        original_image: result.original_image,
+        segmented_image: result.segmented_image,
+        models_used: result.models_used,
       };
       
       addReport(report);

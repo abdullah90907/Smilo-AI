@@ -26,7 +26,7 @@ MANIFEST
 venv/
 ENV/
 env/
-
+static/
 # AI Training Data (TOO LARGE FOR GITHUB)
 ai-training/
 data.zip

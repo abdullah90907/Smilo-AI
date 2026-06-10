@@ -270,52 +270,6 @@ export default function Auth() {
               ))}
           </div>
           
-          {/* Quick Test Buttons */}
-          <div className="flex gap-2 mb-6 flex-wrap">
-              <button
-                  onClick={async () => {
-                      setIsLoading(true);
-                      try {
-                          // Login directly without seeding
-                          console.log("🔑 Logging in as patient...");
-                          const res = await login("patient@test.com", "test1234", "patient");
-                          console.log("✅ Login complete!", res);
-                          localStorage.setItem("user", JSON.stringify(res));
-                          navigate("/dashboard");
-                      } catch(err) { 
-                          console.error("❌ Error:", err); 
-                          alert("Error! Check console for details! Error: " + (err as any).message);
-                      } finally { 
-                          setIsLoading(false); 
-                      }
-                  }}
-                  className="flex-1 bg-[#21b2c0] hover:opacity-90 text-white py-2 px-4 rounded-xl font-medium transition-all duration-200 text-sm"
-              >
-                  Test as Patient
-              </button>
-              <button
-                  onClick={async () => {
-                      setIsLoading(true);
-                      try {
-                          // Login directly without seeding
-                          console.log("🔑 Logging in as doctor...");
-                          const res = await login("doctor@test.com", "test1234", "doctor");
-                          console.log("✅ Login complete!", res);
-                          localStorage.setItem("user", JSON.stringify(res));
-                          navigate("/doctor-dashboard");
-                      } catch(err) { 
-                          console.error("❌ Error:", err); 
-                          alert("Error! Check console for details! Error: " + (err as any).message);
-                      } finally { 
-                          setIsLoading(false); 
-                      }
-                  }}
-                  className="flex-1 bg-gray-800 hover:opacity-90 text-white py-2 px-4 rounded-xl font-medium transition-all duration-200 text-sm"
-              >
-                  Test as Doctor
-              </button>
-          </div>
-
             {/* Role Toggle */}
             <div className="flex gap-2 mb-8 bg-gray-100 p-1.5 rounded-2xl">
               {(activeTab === "login" ? loginTabs : registerTabs).map((tab) => (

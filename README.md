@@ -130,10 +130,12 @@ npm run dev
 
 ---
 
-## 👥 Team
+## 👨‍💻 About Me
 
-- Abdullah Siddique
-- Mohsin
+Hi! I'm Abdullah Siddique, the developer behind Smilo AI.
+
+- **LinkedIn**: https://www.linkedin.com/in/mr-abdullah-siddique/
+- **Portfolio**: https://abdullahsiddique.co.uk/
 
 ---
 

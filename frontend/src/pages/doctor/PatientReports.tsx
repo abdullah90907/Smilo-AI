@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   FileText,
   Brain,
@@ -30,78 +31,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getDoctorAppointments, updateAppointmentStatus } from "@/lib/api";
+import { toast } from "sonner";
+
+type AttachedReport = {
+  id?: number;
+  ai_prediction: string;
+  severity: string;
+  confidence: string;
+  image_data?: string;
+  result_json?: any;
+  report_type?: string;
+};
+
+type Appointment = {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  patient_age: string;
+  status: string;
+  appointment_date?: string;
+  created_at: string;
+  xray_report?: AttachedReport;
+  photo_report?: AttachedReport;
+  gemini_report?: AttachedReport;
+  doctor_note?: string;
+  has_new_uploads?: boolean;
+};
 
 export default function PatientReports() {
   const navigate = useNavigate();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<number | null>(null);
 
-  const reports = [
-    {
-      id: "12567",
-      patientId: "#12567",
-      uploadDate: "Jan 18, 2026 10:30 AM",
-      aiPrediction: "Dental Caries",
-      confidence: "87.3%",
-      severity: "Moderate",
-      status: "Pending Review",
-    },
-    {
-      id: "12568",
-      patientId: "#12568",
-      uploadDate: "Jan 18, 2026 09:15 AM",
-      aiPrediction: "Healthy",
-      confidence: "92.1%",
-      severity: "None",
-      status: "Pending Review",
-    },
-    {
-      id: "12569",
-      patientId: "#12569",
-      uploadDate: "Jan 17, 2026 04:45 PM",
-      aiPrediction: "Dental Caries",
-      confidence: "78.5%",
-      severity: "Mild",
-      status: "Under Review",
-    },
-    {
-      id: "12570",
-      patientId: "#12570",
-      uploadDate: "Jan 17, 2026 02:20 PM",
-      aiPrediction: "Dental Caries",
-      confidence: "94.2%",
-      severity: "Severe",
-      status: "Pending Review",
-    },
-    {
-      id: "12571",
-      patientId: "#12571",
-      uploadDate: "Jan 17, 2026 11:10 AM",
-      aiPrediction: "Healthy",
-      confidence: "89.7%",
-      severity: "None",
-      status: "Pending Review",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getDoctorAppointments();
+        setAppointments(data.appointments);
+      } catch (e) {
+        console.error("Error fetching appointments:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const reviewedReports = [
-    {
-      id: "12400",
-      patientId: "#12400",
-      uploadDate: "Jan 16, 2026",
-      aiPrediction: "Dental Caries",
-      doctorDiagnosis: "Confirmed - Caries",
-      reviewDate: "Jan 17, 2026",
-      status: "Completed",
-    },
-    {
-      id: "12401",
-      patientId: "#12401",
-      uploadDate: "Jan 15, 2026",
-      aiPrediction: "Healthy",
-      doctorDiagnosis: "Confirmed - Healthy",
-      reviewDate: "Jan 16, 2026",
-      status: "Completed",
-    },
-  ];
+  const handleCloseCase = async (appointmentId: number) => {
+    setUpdating(appointmentId);
+    try {
+      await updateAppointmentStatus(appointmentId, "closed");
+      toast.success("Case closed successfully!");
+      const data = await getDoctorAppointments();
+      setAppointments(data.appointments);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to close case");
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -118,16 +108,32 @@ export default function PatientReports() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pending Review":
+      case "pending":
         return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      case "Under Review":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "Completed":
+      case "approved":
         return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "rejected":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      case "closed":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "cancelled":
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
       default:
         return "";
     }
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const pendingAppointments = appointments.filter(a => a.status === "pending");
+  const approvedAppointments = appointments.filter(a => a.status === "approved");
+  const closedAppointments = appointments.filter(a => a.status === "closed");
 
   return (
     <div className="min-h-screen">
@@ -138,7 +144,7 @@ export default function PatientReports() {
             <div>
               <h1 className="text-2xl font-bold">Patient Reports</h1>
               <p className="text-sm text-muted-foreground">
-                Review and validate AI-analyzed X-ray reports
+                Review and validate AI-analyzed reports
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -146,18 +152,6 @@ export default function PatientReports() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input placeholder="Search by Patient ID..." className="pl-9 w-64" />
               </div>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Severity</SelectItem>
-                  <SelectItem value="severe">Severe</SelectItem>
-                  <SelectItem value="moderate">Moderate</SelectItem>
-                  <SelectItem value="mild">Mild</SelectItem>
-                  <SelectItem value="none">None</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>
@@ -166,22 +160,24 @@ export default function PatientReports() {
       {/* Content */}
       <div className="p-8">
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="pending" className="relative">
-              Pending Review
-              <Badge className="ml-2 h-5 min-w-[20px]" variant="destructive">
-                5
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
-            <TabsTrigger value="all">All Cases</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
+            <TabsList className="flex gap-2">
+              <TabsTrigger value="pending" className="relative px-4 min-w-max">
+                Pending Review
+                <Badge className="ml-2 h-5 min-w-[20px]" variant="destructive">
+                  {pendingAppointments.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="reviewed" className="px-4 min-w-max">Complete Review</TabsTrigger>
+              <TabsTrigger value="all" className="px-4 min-w-max">All Cases</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Pending Reports Tab */}
           <TabsContent value="pending" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Pending Reports ({reports.length})</CardTitle>
+                <CardTitle>Pending Reports ({pendingAppointments.length})</CardTitle>
                 <CardDescription>
                   These reports require your professional review and validation
                 </CardDescription>
@@ -190,53 +186,43 @@ export default function PatientReports() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Patient Name</TableHead>
                       <TableHead>Patient ID</TableHead>
-                      <TableHead>Upload Date</TableHead>
-                      <TableHead>AI Prediction</TableHead>
-                      <TableHead>Confidence</TableHead>
-                      <TableHead>Severity</TableHead>
+                      <TableHead>Request Date</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reports.map((report) => (
+                    {pendingAppointments.map((appointment) => (
                       <TableRow
-                        key={report.id}
+                        key={appointment.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() =>
-                          navigate(`/doctor-dashboard/reports/${report.id}`)
-                        }
                       >
-                        <TableCell className="font-medium">{report.patientId}</TableCell>
+                        <TableCell className="font-medium">
+                          {appointment.patient_name}
+                          {appointment.has_new_uploads && (
+                            <Badge className="ml-2 bg-orange-500 text-white hover:bg-orange-600">
+                              New Scans Added
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{appointment.patient_id}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {report.uploadDate}
+                          {formatDate(appointment.created_at)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Brain className="w-4 h-4 text-purple-500" />
-                            <span>{report.aiPrediction}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-primary">
-                            {report.confidence}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getSeverityColor(report.severity)}>
-                            {report.severity}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(report.status)} variant="outline">
-                            {report.status}
+                          <Badge className={getStatusColor(appointment.status)} variant="outline">
+                            Pending Review
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="ghost">
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/doctor-dashboard/reports/${appointment.id}`)}
+                          >
                             <Eye className="w-4 h-4 mr-1" />
-                            View
+                            Review Case
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -247,52 +233,72 @@ export default function PatientReports() {
             </Card>
           </TabsContent>
 
-          {/* Reviewed Reports Tab */}
+          {/* Complete Review Tab */}
           <TabsContent value="reviewed" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Reviewed Reports ({reviewedReports.length})</CardTitle>
+                <CardTitle>Complete Review ({approvedAppointments.length})</CardTitle>
                 <CardDescription>
-                  Previously reviewed and completed cases
+                  Approved cases ready for closure
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Patient Name</TableHead>
                       <TableHead>Patient ID</TableHead>
-                      <TableHead>Upload Date</TableHead>
-                      <TableHead>AI Prediction</TableHead>
-                      <TableHead>Your Diagnosis</TableHead>
-                      <TableHead>Review Date</TableHead>
+                      <TableHead>Request Date</TableHead>
+                      <TableHead>Doctor Note</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reviewedReports.map((report) => (
+                    {approvedAppointments.map((appointment) => (
                       <TableRow
-                        key={report.id}
+                        key={appointment.id}
                         className="cursor-pointer hover:bg-muted/50"
                       >
-                        <TableCell className="font-medium">{report.patientId}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {report.uploadDate}
+                        <TableCell className="font-medium">
+                          {appointment.patient_name}
+                          {appointment.has_new_uploads && (
+                            <Badge className="ml-2 bg-orange-500 text-white hover:bg-orange-600">
+                              New Scans Added
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell>{report.aiPrediction}</TableCell>
-                        <TableCell>{report.doctorDiagnosis}</TableCell>
+                        <TableCell className="text-sm">{appointment.patient_id}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {report.reviewDate}
+                          {formatDate(appointment.created_at)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {appointment.doctor_note ? (
+                            <span className="italic text-muted-foreground">{appointment.doctor_note}</span>
+                          ) : (
+                            "-"
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(report.status)} variant="outline">
-                            {report.status}
+                          <Badge className={getStatusColor(appointment.status)} variant="outline">
+                            Approved
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost">
+                        <TableCell className="text-right flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/doctor-dashboard/reports/${appointment.id}`)}
+                          >
                             <Eye className="w-4 h-4 mr-1" />
                             View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={updating === appointment.id}
+                            onClick={() => handleCloseCase(appointment.id)}
+                          >
+                            {updating === appointment.id ? "Closing..." : "Close Case"}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -307,14 +313,50 @@ export default function PatientReports() {
           <TabsContent value="all" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>All Cases</CardTitle>
-                <CardDescription>Complete history of all patient reports</CardDescription>
+                <CardTitle>All Cases ({closedAppointments.length})</CardTitle>
+                <CardDescription>Closed and completed cases</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p>Combined view of all cases will be displayed here</p>
-                </div>
+                {closedAppointments.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>No closed cases yet</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Patient Name</TableHead>
+                        <TableHead>Patient ID</TableHead>
+                        <TableHead>Request Date</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {closedAppointments.map((appointment) => (
+                        <TableRow key={appointment.id}>
+                          <TableCell className="font-medium">
+                          {appointment.patient_name}
+                          {appointment.has_new_uploads && (
+                            <Badge className="ml-2 bg-orange-500 text-white hover:bg-orange-600">
+                              New Scans Added
+                            </Badge>
+                          )}
+                        </TableCell>
+                          <TableCell className="text-sm">{appointment.patient_id}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDate(appointment.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(appointment.status)} variant="outline">
+                              Closed
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

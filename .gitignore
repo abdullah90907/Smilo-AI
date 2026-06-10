@@ -26,7 +26,13 @@ MANIFEST
 venv/
 ENV/
 env/
+
+# Static files (generated, not source)
 static/
+*.sqlite3
+*.db
+smilo_ai.db
+
 # AI Training Data (TOO LARGE FOR GITHUB)
 ai-training/
 data.zip
@@ -58,6 +64,10 @@ frontend/dist-ssr/
 frontend/*.local
 frontend/.vite/
 frontend/build/
+frontend/.DS_Store
+
+# Backend Config (contains API keys, secrets, etc.)
+backend/app/core/config.py
 
 # Logs
 *.log

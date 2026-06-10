@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   Users,
   Calendar,
@@ -20,14 +21,40 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getDoctorStats, getPendingReports, getDoctorAppointments, getReviewedReports } from "@/lib/api";
 
 export default function Overview() {
   const navigate = useNavigate();
+  const [pendingReports, setPendingReports] = useState<any[]>([]);
+  const [reviewedReports, setReviewedReports] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
-  const stats = [
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
+  // Compute stats
+  const pendingReportsCount = pendingReports.length;
+  const approvedAppointments = appointments.filter(a => a.status === "approved");
+  const consultationsToday = approvedAppointments.length;
+  const uniquePatientIds = new Set(appointments.map(a => a.patient_id));
+  const totalPatients = uniquePatientIds.size;
+  const aiAccuracyRate = "94.2%";
+
+  const statsArray = [
     {
       label: "Pending Reports",
-      value: "5",
+      value: String(pendingReportsCount),
       icon: FileText,
       trend: "+2 today",
       trendUp: true,
@@ -36,16 +63,16 @@ export default function Overview() {
     },
     {
       label: "Consultations Today",
-      value: "3",
+      value: String(consultationsToday),
       icon: Calendar,
-      trend: "2 completed",
+      trend: `${approvedAppointments.length} scheduled`,
       trendUp: true,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
       label: "Total Patients",
-      value: "127",
+      value: String(totalPatients),
       icon: Users,
       trend: "+8 this month",
       trendUp: true,
@@ -54,7 +81,7 @@ export default function Overview() {
     },
     {
       label: "AI Accuracy Rate",
-      value: "94.2%",
+      value: aiAccuracyRate,
       icon: Brain,
       trend: "+2.3%",
       trendUp: true,
@@ -62,6 +89,37 @@ export default function Overview() {
       bgColor: "bg-purple-500/10",
     },
   ];
+
+  useEffect(() => {
+    // Get user from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    const fetchData = async () => {
+      try {
+        const [reportsRes, reviewedRes, appointmentsRes] = await Promise.all([
+          getPendingReports(),
+          getReviewedReports(),
+          getDoctorAppointments()
+        ]);
+        setPendingReports(reportsRes.reports || []);
+        setReviewedReports(reviewedRes.reports || []);
+        setAppointments(appointmentsRes.appointments || []);
+      } catch (e) {
+        console.error("Error fetching data:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+
+    // Add listener for dashboard updates
+    const handleUpdate = () => fetchData();
+    window.addEventListener('dashboard-update', handleUpdate);
+    return () => window.removeEventListener('dashboard-update', handleUpdate);
+  }, []);
 
   const recentActivity = [
     {
@@ -115,30 +173,6 @@ export default function Overview() {
     },
   ];
 
-  const pendingReports = [
-    {
-      patientId: "#12567",
-      uploadDate: "Jan 18, 2026",
-      aiPrediction: "Dental Caries",
-      confidence: "87.3%",
-      severity: "Moderate",
-    },
-    {
-      patientId: "#12568",
-      uploadDate: "Jan 18, 2026",
-      aiPrediction: "Healthy",
-      confidence: "92.1%",
-      severity: "None",
-    },
-    {
-      patientId: "#12569",
-      uploadDate: "Jan 17, 2026",
-      aiPrediction: "Dental Caries",
-      confidence: "78.5%",
-      severity: "Mild",
-    },
-  ];
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -155,7 +189,7 @@ export default function Overview() {
             <div>
               <h1 className="text-2xl font-bold">Dashboard Overview</h1>
               <p className="text-sm text-muted-foreground">
-                {getGreeting()}, Dr. Ahmed Khan
+                {getGreeting()}, {user?.full_name || "Doctor"}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -179,7 +213,7 @@ export default function Overview() {
       <div className="p-8 space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+          {statsArray.map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
@@ -245,13 +279,13 @@ export default function Overview() {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Pending Reports */}
+          {/* Pending & Complete Reports (using appointments) */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Pending Reports</CardTitle>
-                  <CardDescription>Review AI-analyzed X-rays</CardDescription>
+                  <CardTitle>Case Review</CardTitle>
+                  <CardDescription>Pending and completed reviews</CardDescription>
                 </div>
                 <Button
                   variant="ghost"
@@ -264,47 +298,57 @@ export default function Overview() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {pendingReports.map((report) => (
-                  <motion.div
-                    key={report.patientId}
-                    whileHover={{ x: 4 }}
-                    className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
-                    onClick={() => navigate(`/doctor-dashboard/reports/${report.patientId}`)}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">Patient {report.patientId}</p>
-                          <p className="text-xs text-muted-foreground">{report.uploadDate}</p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={report.severity === "None" ? "secondary" : "destructive"}
+              <Tabs defaultValue="pending" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="pending">Pending ({appointments.filter(a => a.status === "pending").length})</TabsTrigger>
+                  <TabsTrigger value="reviewed">Complete ({appointments.filter(a => a.status === "approved" || a.status === "closed").length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="pending" className="mt-4">
+                  <div className="space-y-3">
+                    {appointments.filter(a => a.status === "pending").slice(0, 5).map((appt) => (
+                      <motion.div
+                        key={appt.id}
+                        whileHover={{ x: 4 }}
+                        className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
+                        onClick={() => navigate(`/doctor-dashboard/reports/${appt.id}`)}
                       >
-                        {report.severity}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">AI Prediction:</span>
-                      <span className="font-medium">{report.aiPrediction}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm mt-1">
-                      <span className="text-muted-foreground">Confidence:</span>
-                      <span className="font-medium text-primary">{report.confidence}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold">{appt.patient_name}</p>
+                          <Badge variant="destructive">Pending</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {appt.patient_id} • {formatDate(appt.created_at)}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="reviewed" className="mt-4">
+                  <div className="space-y-3">
+                    {appointments.filter(a => a.status === "approved" || a.status === "closed").slice(0, 5).map((appt) => (
+                      <motion.div
+                        key={appt.id}
+                        whileHover={{ x: 4 }}
+                        className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
+                        onClick={() => navigate(`/doctor-dashboard/reports/${appt.id}`)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold">{appt.patient_name}</p>
+                          <Badge variant="secondary">{appt.status}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {appt.patient_id} • {formatDate(appt.created_at)}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
-          {/* Upcoming Appointments & Recent Activity */}
+          {/* Upcoming Appointments */}
           <div className="space-y-6">
-            {/* Upcoming Appointments */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Upcoming Appointments</CardTitle>
@@ -312,57 +356,36 @@ export default function Overview() {
               <CardContent>
                 <ScrollArea className="h-64">
                   <div className="space-y-3">
-                    {upcomingAppointments.map((appointment, index) => (
+                    {approvedAppointments.map((appt, index) => (
                       <div
-                        key={index}
-                        className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        key={appt.id || index}
+                        className="p-3 rounded-lg bg-[#21b2c0]/10 hover:bg-[#21b2c0]/20 transition-colors border border-[#21b2c0]/20"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <p className="font-semibold text-sm">
-                            Patient {appointment.patientId}
+                          <p className="font-semibold text-sm text-[#21b2c0]">
+                            {appt.patient_name}
                           </p>
-                          <Badge
-                            variant={
-                              appointment.status === "confirmed" ? "secondary" : "default"
-                            }
-                            className="text-xs"
-                          >
-                            {appointment.status}
+                          <Badge className="bg-[#21b2c0] text-white hover:bg-[#1a95a0]">
+                            Approved
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          {appointment.time}
+                          {appt.appointment_date ? formatDate(appt.appointment_date) : "Not scheduled"}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {appointment.type}
-                        </p>
+                        {appt.doctor_note && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">
+                            Note: {appt.doctor_note}
+                          </p>
+                        )}
                       </div>
                     ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64">
-                  <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div key={index} className="flex gap-3">
-                        <div className={`w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0`}>
-                          <activity.icon className={`w-4 h-4 ${activity.color}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{activity.message}</p>
-                          <p className="text-xs text-muted-foreground">{activity.time}</p>
-                        </div>
+                    {approvedAppointments.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>No upcoming appointments</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </ScrollArea>
               </CardContent>

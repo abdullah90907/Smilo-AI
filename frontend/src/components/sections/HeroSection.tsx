@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, Stethoscope } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import heroImage from "@/assets/hero-illustration.jpg";
@@ -78,16 +78,17 @@ export const HeroSection = () => {
                 className="gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300 text-lg px-8"
                 onClick={() => navigate("/auth")}
               >
-                Upload Dental X-ray
+                Login / Register as Patient
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="border-primary/30 hover:bg-accent transition-all duration-300 text-lg px-8"
+                onClick={() => navigate("/auth")}
               >
-                <Play className="mr-2 w-5 h-5" />
-                How It Works
+                <Stethoscope className="mr-2 w-5 h-5" />
+                For Doctors
               </Button>
             </motion.div>
 

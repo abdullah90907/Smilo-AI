@@ -372,15 +372,13 @@ class TeethSegmenter:
                 "crop_bbox": ml_outputs["bbox"],
             }
 
-            self.save_png_lossless(ml_outputs["full_masked_original_pixels"], os.path.join(output_dir, "full_masked_original_pixels.png"))
-            self.save_png_lossless(ml_outputs["teeth_crop_masked_original_pixels"], os.path.join(output_dir, "teeth_crop_masked_original_pixels.png"))
-
         original_pil.convert("RGB").save(original_path, compress_level=0)
         self.save_png_lossless(binary_mask_uint8, clean_mask_path)
         self.save_png_lossless(visual_extracted, os.path.join(output_dir, "visual_teeth_extracted.png"))
         Image.fromarray(overlay).save(os.path.join(output_dir, "overlay.png"), compress_level=0)
+        
+        # Save these for ML use but don't expose to frontend by default
         self.save_png_lossless(ml_outputs["teeth_crop_original_pixels"], os.path.join(output_dir, "teeth_crop_original_pixels.png"))
-        self.save_png_lossless(ml_outputs["teeth_crop_binary_mask"], os.path.join(output_dir, "teeth_crop_binary_mask.png"))
 
         with open(os.path.join(output_dir, "metadata.json"), "w") as f:
             json.dump(metadata, f, indent=4)

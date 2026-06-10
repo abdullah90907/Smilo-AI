@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Stethoscope,
   UserRound,
+  GraduationCap,
+  Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,51 +27,101 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { register, login, seedDB } from "@/lib/api";
 
-type TabType = "patient-login" | "patient-register" | "doctor-login";
+type TabType = "login" | "register";
+type RoleType = "patient" | "doctor";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>("patient-login");
+  
+  const [activeTab, setActiveTab] = useState<TabType>("login");
+  const [selectedRole, setSelectedRole] = useState<RoleType>("patient");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({
-    name: "",
+
+  const [patientRegisterForm, setPatientRegisterForm] = useState({
+    full_name: "",
     email: "",
     password: "",
     age: "",
     gender: "",
-    city: "",
   });
-  const [doctorForm, setDoctorForm] = useState({
+  
+  const [doctorRegisterForm, setDoctorRegisterForm] = useState({
+    full_name: "",
     email: "",
     password: "",
-    clinic: "",
+    specialization: "",
+    experience_years: "",
+    city: "",
+    qualifications: "",
+    clinic_name: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate auth delay
-    setTimeout(() => {
-      setIsLoading(false);
-      // Redirect based on user type
-      if (activeTab === "doctor-login") {
+    try {
+      const res = await login(loginForm.email, loginForm.password, selectedRole);
+      // Store user data in localStorage for now
+      localStorage.setItem('user', JSON.stringify(res));
+      if (res.role === "doctor") {
         navigate("/doctor-dashboard");
       } else {
         navigate("/dashboard");
       }
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      alert("Login failed: " + (err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const tabs = [
-    { id: "patient-login" as TabType, label: "Patient Login", icon: UserRound },
-    { id: "patient-register" as TabType, label: "Register", icon: User },
-    { id: "doctor-login" as TabType, label: "Doctor Login", icon: Stethoscope },
+  const handlePatientRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const data = { ...patientRegisterForm, role: "patient" };
+      const res = await register(data);
+      localStorage.setItem("user", JSON.stringify(res));
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Registration failed: " + (err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDoctorRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const data = { ...doctorRegisterForm, role: "doctor" };
+      const res = await register(data);
+      localStorage.setItem("user", JSON.stringify(res));
+      navigate("/doctor-dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Registration failed: " + (err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginTabs = [
+    { id: "patient" as RoleType, label: "Patient Login", icon: UserRound },
+    { id: "doctor" as RoleType, label: "Doctor Login", icon: Stethoscope },
+  ];
+
+  const registerTabs = [
+    { id: "patient" as RoleType, label: "I'm a Patient", icon: UserRound },
+    { id: "doctor" as RoleType, label: "I'm a Doctor", icon: Stethoscope },
   ];
 
   return (
@@ -79,22 +131,26 @@ export default function Auth() {
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
-        className="hidden lg:flex lg:w-1/2 gradient-primary relative overflow-hidden"
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        style={{ backgroundColor: "#21b2c0" }}
       >
         {/* Animated background elements */}
         <div className="absolute inset-0">
           <motion.div
-            className="absolute top-20 left-20 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl"
+            className="absolute top-20 left-20 w-64 h-64 rounded-full blur-3xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
             animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
             transition={{ duration: 8, repeat: Infinity }}
           />
           <motion.div
-            className="absolute bottom-20 right-20 w-80 h-80 bg-primary-foreground/10 rounded-full blur-3xl"
+            className="absolute bottom-20 right-20 w-80 h-80 rounded-full blur-3xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
             animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 10, repeat: Infinity }}
           />
           <motion.div
-            className="absolute top-1/2 left-1/3 w-48 h-48 bg-primary-foreground/5 rounded-full blur-2xl"
+            className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full blur-2xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
             animate={{ y: [-20, 20, -20], x: [-10, 10, -10] }}
             transition={{ duration: 12, repeat: Infinity }}
           />
@@ -113,10 +169,10 @@ export default function Auth() {
               className="flex items-center justify-center gap-3 mb-8"
               whileHover={{ scale: 1.02 }}
             >
-              <div className="w-16 h-16 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                <Sparkles className="w-10 h-10 text-primary-foreground" />
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
+                <Sparkles className="w-10 h-10 text-white" />
               </div>
-              <span className="text-5xl font-bold text-primary-foreground">
+              <span className="text-5xl font-bold text-white">
                 Smilo
               </span>
             </motion.div>
@@ -126,7 +182,7 @@ export default function Auth() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-2xl lg:text-3xl font-semibold text-primary-foreground mb-4"
+              className="text-2xl lg:text-3xl font-semibold text-white mb-4"
             >
               Smart AI for Smarter Smiles
             </motion.h2>
@@ -135,10 +191,10 @@ export default function Auth() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-primary-foreground/80 text-lg max-w-md"
+              className="text-white/80 text-lg max-w-md"
             >
               Experience the future of dental diagnostics with our AI-powered
-              detection system designed for dental professionals.
+              detection system.
             </motion.p>
 
             {/* Decorative dental illustration */}
@@ -150,12 +206,14 @@ export default function Auth() {
             >
               <div className="w-48 h-48 mx-auto relative">
                 <motion.div
-                  className="absolute inset-0 rounded-full border-4 border-primary-foreground/20"
+                  className="absolute inset-0 rounded-full border-4"
+                  style={{ borderColor: "rgba(255,255,255,0.2)" }}
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 />
                 <motion.div
-                  className="absolute inset-4 rounded-full border-4 border-dashed border-primary-foreground/30"
+                  className="absolute inset-4 rounded-full border-4 border-dashed"
+                  style={{ borderColor: "rgba(255,255,255,0.3)" }}
                   animate={{ rotate: -360 }}
                   transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                 />
@@ -182,8 +240,8 @@ export default function Auth() {
             animate={{ opacity: 1, y: 0 }}
             className="lg:hidden flex items-center justify-center gap-2 mb-8"
           >
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#21b2c0" }}>
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-foreground">Smilo</span>
           </motion.div>
@@ -193,18 +251,81 @@ export default function Auth() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl"
+            className="bg-white border border-gray-200 rounded-3xl p-8 shadow-xl"
           >
-            {/* Tabs */}
-            <div className="flex gap-2 mb-8 bg-muted/50 p-1.5 rounded-2xl">
-              {tabs.map((tab) => (
+            {/* Main Tabs (Login/Register) */}
+          <div className="flex gap-2 mb-6 bg-gray-100 p-1.5 rounded-2xl">
+              {["login" as TabType, "register" as TabType].map((tab) => (
+                  <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                          activeTab === tab
+                              ? "bg-white text-[#21b2c0] shadow-md"
+                              : "text-gray-500 hover:text-gray-800"
+                      }`}
+                  >
+                      {tab === "login" ? "Sign In" : "Sign Up"}
+                  </button>
+              ))}
+          </div>
+          
+          {/* Quick Test Buttons */}
+          <div className="flex gap-2 mb-6 flex-wrap">
+              <button
+                  onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                          // Login directly without seeding
+                          console.log("🔑 Logging in as patient...");
+                          const res = await login("patient@test.com", "test1234", "patient");
+                          console.log("✅ Login complete!", res);
+                          localStorage.setItem("user", JSON.stringify(res));
+                          navigate("/dashboard");
+                      } catch(err) { 
+                          console.error("❌ Error:", err); 
+                          alert("Error! Check console for details! Error: " + (err as any).message);
+                      } finally { 
+                          setIsLoading(false); 
+                      }
+                  }}
+                  className="flex-1 bg-[#21b2c0] hover:opacity-90 text-white py-2 px-4 rounded-xl font-medium transition-all duration-200 text-sm"
+              >
+                  Test as Patient
+              </button>
+              <button
+                  onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                          // Login directly without seeding
+                          console.log("🔑 Logging in as doctor...");
+                          const res = await login("doctor@test.com", "test1234", "doctor");
+                          console.log("✅ Login complete!", res);
+                          localStorage.setItem("user", JSON.stringify(res));
+                          navigate("/doctor-dashboard");
+                      } catch(err) { 
+                          console.error("❌ Error:", err); 
+                          alert("Error! Check console for details! Error: " + (err as any).message);
+                      } finally { 
+                          setIsLoading(false); 
+                      }
+                  }}
+                  className="flex-1 bg-gray-800 hover:opacity-90 text-white py-2 px-4 rounded-xl font-medium transition-all duration-200 text-sm"
+              >
+                  Test as Doctor
+              </button>
+          </div>
+
+            {/* Role Toggle */}
+            <div className="flex gap-2 mb-8 bg-gray-100 p-1.5 rounded-2xl">
+              {(activeTab === "login" ? loginTabs : registerTabs).map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => setSelectedRole(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                    activeTab === tab.id
-                      ? "bg-background text-primary shadow-md"
-                      : "text-muted-foreground hover:text-foreground"
+                    selectedRole === tab.id
+                      ? "bg-white text-[#21b2c0] shadow-md"
+                      : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -215,34 +336,46 @@ export default function Auth() {
 
             {/* Form Content */}
             <AnimatePresence mode="wait">
-              {activeTab === "patient-login" && (
+              {activeTab === "login" && (
                 <motion.form
-                  key="patient-login"
+                  key="login"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  onSubmit={handleSubmit}
+                  onSubmit={handleLogin}
                   className="space-y-5"
                 >
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold text-foreground">
                       Welcome Back
                     </h3>
-                    <p className="text-muted-foreground mt-1">
-                      Sign in to access your dental health dashboard
+                    <p className="text-gray-500 mt-1">
+                      {selectedRole === "doctor" ? "Sign in to your doctor portal" : "Sign in to your patient dashboard"}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="patient-email">Email Address</Label>
+                    <Label htmlFor="login-email">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
-                        id="patient-email"
+                        id="login-email"
                         type="email"
-                        placeholder="patient@email.com"
-                        className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300"
+                        placeholder="you@email.com"
+                        className="pl-10 h-12 bg-gray-50 border-gray-200"
+                        style={{
+                          "--tw-ring-color": "#21b2c0",
+                          "--tw-border-opacity": 1,
+                        } as React.CSSProperties}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
                         value={loginForm.email}
                         onChange={(e) =>
                           setLoginForm({ ...loginForm, email: e.target.value })
@@ -253,14 +386,22 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="patient-password">Password</Label>
+                    <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
-                        id="patient-password"
+                        id="login-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300"
+                        className="pl-10 pr-10 h-12 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
                         value={loginForm.password}
                         onChange={(e) =>
                           setLoginForm({ ...loginForm, password: e.target.value })
@@ -270,33 +411,24 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="rounded border-border" />
-                      <span className="text-muted-foreground">Remember me</span>
-                    </label>
-                    <a href="#" className="text-primary hover:underline">
-                      Forgot password?
-                    </a>
-                  </div>
-
                   <Button
                     type="submit"
-                    className="w-full h-12 gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300 text-lg"
+                    className="w-full h-12 text-white hover:opacity-90 transition-all duration-300 text-lg"
+                    style={{ backgroundColor: "#21b2c0" }}
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-6 h-6 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                        className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
                       />
                     ) : (
                       <>
@@ -308,37 +440,45 @@ export default function Auth() {
                 </motion.form>
               )}
 
-              {activeTab === "patient-register" && (
+              {activeTab === "register" && selectedRole === "patient" && (
                 <motion.form
                   key="patient-register"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  onSubmit={handleSubmit}
+                  onSubmit={handlePatientRegister}
                   className="space-y-4"
                 >
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold text-foreground">
-                      Create Account
+                      Create Patient Account
                     </h3>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-gray-500 mt-1">
                       Start your dental health journey with Smilo
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-name">Full Name</Label>
+                    <Label htmlFor="patient-name">Full Name</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
-                        id="register-name"
+                        id="patient-name"
                         type="text"
                         placeholder="John Doe"
-                        className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary transition-all"
-                        value={registerForm.name}
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={patientRegisterForm.full_name}
                         onChange={(e) =>
-                          setRegisterForm({ ...registerForm, name: e.target.value })
+                          setPatientRegisterForm({ ...patientRegisterForm, full_name: e.target.value })
                         }
                         required
                       />
@@ -346,17 +486,25 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">Email Address</Label>
+                    <Label htmlFor="patient-email">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
-                        id="register-email"
+                        id="patient-email"
                         type="email"
                         placeholder="patient@email.com"
-                        className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary transition-all"
-                        value={registerForm.email}
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={patientRegisterForm.email}
                         onChange={(e) =>
-                          setRegisterForm({ ...registerForm, email: e.target.value })
+                          setPatientRegisterForm({ ...patientRegisterForm, email: e.target.value })
                         }
                         required
                       />
@@ -364,24 +512,32 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">Password</Label>
+                    <Label htmlFor="patient-password">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
-                        id="register-password"
+                        id="patient-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10 pr-10 h-11 bg-background/50 border-border/50 focus:border-primary transition-all"
-                        value={registerForm.password}
+                        className="pl-10 pr-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={patientRegisterForm.password}
                         onChange={(e) =>
-                          setRegisterForm({ ...registerForm, password: e.target.value })
+                          setPatientRegisterForm({ ...patientRegisterForm, password: e.target.value })
                         }
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -390,19 +546,27 @@ export default function Auth() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="register-age">Age</Label>
+                      <Label htmlFor="patient-age">Age</Label>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <Input
-                          id="register-age"
+                          id="patient-age"
                           type="number"
                           placeholder="25"
                           min="1"
                           max="120"
-                          className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary transition-all"
-                          value={registerForm.age}
+                          className="pl-10 h-11 bg-gray-50 border-gray-200"
+                          onFocus={(e) => {
+                            e.target.style.borderColor = "#21b2c0";
+                            e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = "";
+                            e.target.style.boxShadow = "";
+                          }}
+                          value={patientRegisterForm.age}
                           onChange={(e) =>
-                            setRegisterForm({ ...registerForm, age: e.target.value })
+                            setPatientRegisterForm({ ...patientRegisterForm, age: e.target.value })
                           }
                           required
                         />
@@ -410,14 +574,23 @@ export default function Auth() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="register-gender">Gender</Label>
+                      <Label htmlFor="patient-gender">Gender</Label>
                       <Select
-                        value={registerForm.gender}
+                        value={patientRegisterForm.gender}
                         onValueChange={(value) =>
-                          setRegisterForm({ ...registerForm, gender: value })
+                          setPatientRegisterForm({ ...patientRegisterForm, gender: value })
                         }
                       >
-                        <SelectTrigger className="h-11 bg-background/50 border-border/50 focus:border-primary">
+                        <SelectTrigger className="h-11 bg-gray-50 border-gray-200"
+                          onFocus={(e) => {
+                            e.currentTarget.style.borderColor = "#21b2c0";
+                            e.currentTarget.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.borderColor = "";
+                            e.currentTarget.style.boxShadow = "";
+                          }}
+                        >
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
@@ -429,34 +602,17 @@ export default function Auth() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="register-city">City</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        id="register-city"
-                        type="text"
-                        placeholder="Your City"
-                        className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary transition-all"
-                        value={registerForm.city}
-                        onChange={(e) =>
-                          setRegisterForm({ ...registerForm, city: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <Button
                     type="submit"
-                    className="w-full h-12 gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300 text-lg mt-2"
+                    className="w-full h-12 text-white hover:opacity-90 transition-all duration-300 text-lg mt-2"
+                    style={{ backgroundColor: "#21b2c0" }}
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-6 h-6 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                        className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
                       />
                     ) : (
                       <>
@@ -468,37 +624,71 @@ export default function Auth() {
                 </motion.form>
               )}
 
-              {activeTab === "doctor-login" && (
+              {activeTab === "register" && selectedRole === "doctor" && (
                 <motion.form
-                  key="doctor-login"
+                  key="doctor-register"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  onSubmit={handleSubmit}
-                  className="space-y-5"
+                  onSubmit={handleDoctorRegister}
+                  className="space-y-4"
                 >
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold text-foreground">
-                      Doctor Portal
+                      Create Doctor Account
                     </h3>
-                    <p className="text-muted-foreground mt-1">
-                      Access your professional dashboard
+                    <p className="text-gray-500 mt-1">
+                      Join our professional network
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="doctor-email">Professional Email</Label>
+                    <Label htmlFor="doctor-name">Full Name</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="doctor-name"
+                        type="text"
+                        placeholder="Dr. John Doe"
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.full_name}
+                        onChange={(e) =>
+                          setDoctorRegisterForm({ ...doctorRegisterForm, full_name: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor-email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         id="doctor-email"
                         type="email"
                         placeholder="doctor@clinic.com"
-                        className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300"
-                        value={doctorForm.email}
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.email}
                         onChange={(e) =>
-                          setDoctorForm({ ...doctorForm, email: e.target.value })
+                          setDoctorRegisterForm({ ...doctorRegisterForm, email: e.target.value })
                         }
                         required
                       />
@@ -508,22 +698,30 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="doctor-password">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         id="doctor-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300"
-                        value={doctorForm.password}
+                        className="pl-10 pr-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.password}
                         onChange={(e) =>
-                          setDoctorForm({ ...doctorForm, password: e.target.value })
+                          setDoctorRegisterForm({ ...doctorRegisterForm, password: e.target.value })
                         }
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -531,17 +729,133 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="doctor-specialization">Specialization</Label>
+                    <div className="relative">
+                      <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="doctor-specialization"
+                        type="text"
+                        placeholder="Orthodontist, Endodontist, etc."
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.specialization}
+                        onChange={(e) =>
+                          setDoctorRegisterForm({ ...doctorRegisterForm, specialization: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="doctor-experience">Experience (Years)</Label>
+                      <div className="relative">
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Input
+                          id="doctor-experience"
+                          type="number"
+                          placeholder="5"
+                          min="0"
+                          max="60"
+                          className="pl-10 h-11 bg-gray-50 border-gray-200"
+                          onFocus={(e) => {
+                            e.target.style.borderColor = "#21b2c0";
+                            e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = "";
+                            e.target.style.boxShadow = "";
+                          }}
+                          value={doctorRegisterForm.experience_years}
+                          onChange={(e) =>
+                            setDoctorRegisterForm({ ...doctorRegisterForm, experience_years: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="doctor-city">City</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Input
+                          id="doctor-city"
+                          type="text"
+                          placeholder="City"
+                          className="pl-10 h-11 bg-gray-50 border-gray-200"
+                          onFocus={(e) => {
+                            e.target.style.borderColor = "#21b2c0";
+                            e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = "";
+                            e.target.style.boxShadow = "";
+                          }}
+                          value={doctorRegisterForm.city}
+                          onChange={(e) =>
+                            setDoctorRegisterForm({ ...doctorRegisterForm, city: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor-qualifications">Qualifications</Label>
+                    <div className="relative">
+                      <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="doctor-qualifications"
+                        type="text"
+                        placeholder="BDS, MDS, etc."
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.qualifications}
+                        onChange={(e) =>
+                          setDoctorRegisterForm({ ...doctorRegisterForm, qualifications: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="doctor-clinic">Clinic Name</Label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         id="doctor-clinic"
                         type="text"
-                        placeholder="Your Dental Clinic"
-                        className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300"
-                        value={doctorForm.clinic}
+                        placeholder="Smile Care Dental Clinic"
+                        className="pl-10 h-11 bg-gray-50 border-gray-200"
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#21b2c0";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(33,178,192,0.2)";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "";
+                          e.target.style.boxShadow = "";
+                        }}
+                        value={doctorRegisterForm.clinic_name}
                         onChange={(e) =>
-                          setDoctorForm({ ...doctorForm, clinic: e.target.value })
+                          setDoctorRegisterForm({ ...doctorRegisterForm, clinic_name: e.target.value })
                         }
                         required
                       />
@@ -550,18 +864,19 @@ export default function Auth() {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300 text-lg"
+                    className="w-full h-12 text-white hover:opacity-90 transition-all duration-300 text-lg mt-2"
+                    style={{ backgroundColor: "#21b2c0" }}
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-6 h-6 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                        className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
                       />
                     ) : (
                       <>
-                        Access Portal
+                        Create Account
                         <ArrowRight className="ml-2 w-5 h-5" />
                       </>
                     )}
@@ -569,18 +884,6 @@ export default function Auth() {
                 </motion.form>
               )}
             </AnimatePresence>
-
-            {/* Footer text */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              By continuing, you agree to Smilo's{" "}
-              <a href="#" className="text-primary hover:underline">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="#" className="text-primary hover:underline">
-                Privacy Policy
-              </a>
-            </p>
           </motion.div>
         </div>
       </motion.div>

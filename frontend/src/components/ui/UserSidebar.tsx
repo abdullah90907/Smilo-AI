@@ -1,8 +1,12 @@
 import { motion } from "framer-motion";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  Upload,
+  Scan,
+  FileImage,
+  MessageSquare,
+  TrendingUp,
   FileText,
   Calendar,
   User,
@@ -12,13 +16,14 @@ import {
   HelpCircle,
   Sparkles,
   Stethoscope,
-  History,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getPatientReports } from "@/lib/api";
 
 interface MenuItem {
   icon: any;
@@ -30,16 +35,73 @@ interface MenuItem {
 export default function UserSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [reportsCount, setReportsCount] = useState(0);
+  const [user, setUser] = useState<any>({});
+  const [profile, setProfile] = useState<any>(null);
+
+  const fetchReports = async () => {
+    try {
+      const data = await getPatientReports();
+      setReportsCount(data.reports?.length || 0);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/patient/profile", {
+        headers: {
+          "x-user-id": localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).user_id || JSON.parse(localStorage.getItem("user")!).id : "",
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+      }
+    } catch (e) {
+      console.error("Error fetching profile:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+    fetchProfile();
+
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    const handleDashboardUpdate = () => {
+      fetchReports();
+      fetchProfile();
+    };
+    window.addEventListener('dashboard-update', handleDashboardUpdate);
+    return () => {
+      window.removeEventListener('dashboard-update', handleDashboardUpdate);
+    };
+  }, []);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-    { icon: Upload, label: "Upload X-ray", path: "/dashboard/upload" },
-    { icon: FileText, label: "My Reports", path: "/dashboard/reports", badge: 3 },
-    { icon: History, label: "History", path: "/dashboard/history" },
+    { icon: LayoutDashboard, label: "Dashboard Overview", path: "/dashboard" },
+    { icon: Scan, label: "Clinical X-Ray Scan", path: "/dashboard/xray" },
+    { icon: FileImage, label: "Oral Photo Scanner", path: "/dashboard/photo-analysis" },
+    { icon: FileSpreadsheet, label: "Advanced Report Analytics", path: "/dashboard/report-analysis" },
+    { icon: MessageSquare, label: "AI Assistant Chat", path: "/dashboard/assistant" },
+    { icon: TrendingUp, label: "Saved Analytics", path: "/dashboard/reports", badge: reportsCount > 0 ? reportsCount : undefined },
     { icon: Stethoscope, label: "Find Doctors", path: "/dashboard/doctors" },
-    { icon: Calendar, label: "Appointments", path: "/dashboard/appointments", badge: 1 },
+    { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: User, label: "My Profile", path: "/dashboard/profile" },
-    { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   ];
 
   const isActivePath = (path: string) => {
@@ -72,14 +134,14 @@ export default function UserSidebar() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  JD
+                <AvatarImage src={profile?.profile_image_url} />
+                <AvatarFallback className="bg-[#21b2c0] text-white">
+                  {getInitials(profile?.full_name || user.full_name || 'Patient')}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground">Patient ID: #12345</p>
+                <p className="font-semibold text-sm truncate">{user.full_name || 'Patient'}</p>
+                <p className="text-xs text-muted-foreground">Patient ID: #{user.user_id || user.id || 'N/A'}</p>
               </div>
               <div className="w-2 h-2 rounded-full bg-green-500" title="Active" />
             </div>
@@ -145,4 +207,8 @@ export default function UserSidebar() {
       </div>
     </motion.aside>
   );
+}
+
+export function triggerRefreshReportsCount() {
+  window.dispatchEvent(new CustomEvent('refreshReportsCount'));
 }

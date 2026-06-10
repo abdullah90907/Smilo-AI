@@ -27,6 +27,7 @@ export interface XrayAnalysisResult {
   overlay_url?: string;
   visual_extracted_url?: string;
   original_image_url?: string;
+  caries_detection_url?: string;
   models_used?: ModelsUsed;
 }
 

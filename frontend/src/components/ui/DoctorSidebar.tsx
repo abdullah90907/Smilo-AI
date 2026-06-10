@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { NavLink, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -7,6 +8,7 @@ import {
   Brain,
   FileText,
   MessageSquare,
+  MessageSquareText,
   Calendar,
   User,
   Settings,
@@ -29,19 +31,68 @@ interface MenuItem {
   badge?: number;
 }
 
-export default function DoctorSidebar() {
+interface DoctorSidebarProps {
+  pendingReportsCount?: number;
+  pendingAppointmentsCount?: number;
+}
+
+export default function DoctorSidebar({ 
+  pendingReportsCount = 0, 
+  pendingAppointmentsCount = 0 
+}: DoctorSidebarProps) {
   const location = useLocation();
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/doctor/profile", {
+        headers: {
+          "x-user-id": localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).user_id || JSON.parse(localStorage.getItem("user")!).id : "",
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+      }
+    } catch (e) {
+      console.error("Error fetching profile:", e);
+    }
+  };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    fetchProfile();
+
+    const handleDashboardUpdate = () => {
+      fetchProfile();
+    };
+    window.addEventListener('dashboard-update', handleDashboardUpdate);
+    return () => {
+      window.removeEventListener('dashboard-update', handleDashboardUpdate);
+    };
+  }, []);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: "Overview", path: "/doctor-dashboard" },
-    { icon: Users, label: "Patient Reports", path: "/doctor-dashboard/reports", badge: 5 },
+    { icon: Users, label: "Patient Reports", path: "/doctor-dashboard/reports", badge: pendingReportsCount },
     { icon: Image, label: "X-ray Viewer", path: "/doctor-dashboard/xrays" },
-    { icon: Brain, label: "AI Predictions", path: "/doctor-dashboard/ai-predictions" },
-    { icon: FileText, label: "Case History", path: "/doctor-dashboard/cases" },
-    { icon: MessageSquare, label: "Feedback to AI", path: "/doctor-dashboard/feedback" },
-    { icon: Calendar, label: "Appointments", path: "/doctor-dashboard/appointments", badge: 3 },
+    { icon: Brain, label: "Pro X-Ray Studio", path: "/doctor-dashboard/pro-studio" },
+    { icon: MessageSquareText, label: "Patient Consultation", path: "/doctor-dashboard/consultations" },
+    { icon: Calendar, label: "Appointments", path: "/doctor-dashboard/appointments", badge: pendingAppointmentsCount },
     { icon: User, label: "My Profile", path: "/doctor-dashboard/profile" },
-    { icon: Settings, label: "Settings", path: "/doctor-dashboard/settings" },
   ];
 
   const isActivePath = (path: string) => {
@@ -61,7 +112,7 @@ export default function DoctorSidebar() {
         {/* Logo & Doctor Info */}
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold">Smilo</span>
@@ -74,14 +125,14 @@ export default function DoctorSidebar() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  DR
+                <AvatarImage src={profile?.profile_image_url} />
+                <AvatarFallback className="bg-[#21b2c0] text-white">
+                  {getInitials(profile?.full_name || user?.full_name || "Doctor")}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">Dr. Ahmed Khan</p>
-                <p className="text-xs text-muted-foreground">General Dentistry</p>
+                <p className="font-semibold text-sm truncate">{profile?.full_name || user?.full_name || "Doctor"}</p>
+                <p className="text-xs text-muted-foreground">{profile?.specialization || user?.specialization || "Dentist"}</p>
               </div>
               <div className="w-2 h-2 rounded-full bg-green-500" title="Online" />
             </div>

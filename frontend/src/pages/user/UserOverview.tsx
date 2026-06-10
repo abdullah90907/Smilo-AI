@@ -1,9 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { analyzeXray } from "../../lib/api";
-import { useState, useRef } from "react";
-import { useXrayData } from "@/hooks/useXrayData";
-import { XrayAnalysisResult } from "@/types/xray";
+import { useState, useEffect } from "react";
 import {
   Upload,
   FileText,
@@ -17,109 +14,103 @@ import {
   ArrowRight,
   Bell,
   Search,
-  Loader2,
+  MessageSquare,
+  Scan,
+  Bot,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getPatientReports, getPatientAppointments } from "@/lib/api";
 
 export default function UserOverview() {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { addReport, reports, stats } = useXrayData();
+  const [reports, setReports] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Handle X-ray upload and analysis
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // 1. Get the file the user selected
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsAnalyzing(true); // Turn on loading state
-
+  const fetchData = async () => {
     try {
-      console.log("📤 Sending image to AI...");
-      
-      // 2. Convert image to base64 for storage
-      const reader = new FileReader();
-      const imageUrl = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      
-      // 3. Send to Python Backend
-      const result = await analyzeXray(file);
-      
-      // 4. Save the report with image
-      const report: XrayAnalysisResult = {
-        ...result,
-        id: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toISOString(),
-        imageUrl,
-        original_image: result.original_image,
-        segmented_image: result.segmented_image,
-        models_used: result.models_used,
-      };
-      
-      addReport(report);
-      
-      // 5. Show the result and navigate to detail
-      console.log("✅ AI Response:", result);
-      alert(`AI Analysis Complete!\n\nSeverity: ${result.severity_level}\nCavities Found: ${result.total_issues}`);
-      
-      // Navigate to the report detail page
-      navigate(`/dashboard/reports/${report.id}`);
-      
-    } catch (error) {
-      console.error("Analysis error:", error);
-      alert("❌ Error: Could not connect to Smilo Backend. Is the backend running on port 8000?");
+      const [reportsRes, appointmentsRes] = await Promise.all([
+        getPatientReports(),
+        getPatientAppointments(),
+      ]);
+      setReports(reportsRes.reports || []);
+      setAppointments(appointmentsRes.appointments || []);
+    } catch (e) {
+      console.error("Error fetching data:", e);
     } finally {
-      setIsAnalyzing(false); // Turn off loading state
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setLoading(false);
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
+  useEffect(() => {
+    fetchData();
+    
+    const handleDashboardUpdate = () => {
+      fetchData();
+    };
+    
+    window.addEventListener('dashboard-update', handleDashboardUpdate);
+    return () => {
+      window.removeEventListener('dashboard-update', handleDashboardUpdate);
+    };
+  }, []);
   
-  // Get recent scans from actual data
-  const recentScans = reports.slice(0, 3).map((report) => ({
+  // Get recent scans from actual data - slice top 4 most recent
+  const recentScans = reports.slice(0, 4).map((report) => ({
     id: report.id,
-    date: new Date(report.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    type: "Panoramic X-ray",
-    result: report.total_issues === 0 ? "No Issues" : `${report.total_issues} Issue(s) Found`,
+    date: report.upload_date,
+    type: report.scan_type === "xray" ? "Clinical X-Ray" : 
+          report.scan_type === "photo" ? "Oral Photo" : 
+          report.scan_type === "gemini" ? "AI Assessment" : 
+          "Analyzed Document",
+    result: report.ai_prediction,
     status: "completed",
-    severity: report.severity_level,
+    severity: report.severity,
   }));
+
+  // Find the closest future approved appointment
+  const now = new Date();
+  const approvedAppointments = appointments.filter(a => a.status === "approved" && a.appointment_date);
+  const sortedAppointments = approvedAppointments.sort((a, b) => 
+    new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime()
+  );
+  const nextAppointment = sortedAppointments.find(a => new Date(a.appointment_date) > now);
+  
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } catch {
+      return "Not Available";
+    }
+  };
 
   const statsData = [
     {
-      label: "Total X-rays",
-      value: stats.totalXrays.toString(),
+      label: "Total Reports",
+      value: reports.length.toString(),
       icon: FileImage,
-      trend: reports.length > 0 ? `${reports.length} total` : "Upload first X-ray",
+      trend: reports.length > 0 ? `${reports.length} total` : "Upload first scan",
       trendUp: true,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
-      label: "Health Score",
-      value: `${stats.healthScore}%`,
+      label: "Healthy Scans",
+      value: reports.filter(r => r.severity === "Healthy" || r.severity === "None").length.toString(),
       icon: Activity,
-      trend: stats.healthScore >= 80 ? "Excellent" : stats.healthScore >= 60 ? "Good" : "Needs Attention",
-      trendUp: stats.healthScore >= 60,
+      trend: "Good health",
+      trendUp: true,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
     },
     {
       label: "Reports Ready",
-      value: stats.reportsReady.toString(),
+      value: reports.length.toString(),
       icon: FileText,
       trend: "View now",
       trendUp: true,
@@ -128,23 +119,26 @@ export default function UserOverview() {
     },
     {
       label: "Next Checkup",
-      value: "Jan 25",
+      value: nextAppointment ? formatDate(nextAppointment.appointment_date) : "Not Available",
       icon: Calendar,
-      trend: "8 days",
-      trendUp: false,
+      trend: nextAppointment ? "Scheduled" : "Book now",
+      trendUp: !!nextAppointment,
       color: "text-orange-500",
       bgColor: "bg-orange-500/10",
     },
   ];
 
-  const upcomingAppointments = [
-    {
-      doctor: "Dr. Ahmed Khan",
-      date: "Jan 25, 2026",
-      time: "10:00 AM",
-      type: "Follow-up Consultation",
-    },
-  ];
+  const formatAppointmentDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return {
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        time: date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      };
+    } catch {
+      return { date: "", time: "" };
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -160,7 +154,7 @@ export default function UserOverview() {
         <div className="px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">{getGreeting()}, John! 👋</h1>
+              <h1 className="text-2xl font-bold">{getGreeting()}, {user.full_name || 'Patient'}! 👋</h1>
               <p className="text-sm text-muted-foreground">
                 Here's an overview of your dental health status
               </p>
@@ -207,50 +201,128 @@ export default function UserOverview() {
           ))}
         </div>
 
-        {/* Main Action Card */}
-        <Card className="gradient-primary">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-center md:text-left">
-                <h2 className="text-2xl font-bold text-primary-foreground mb-2">
-                  Upload New X-ray for Analysis
-                </h2>
-                <p className="text-primary-foreground/80 max-w-md">
-                  Get instant AI-powered analysis of your dental X-rays. Our advanced deep
-                  learning model detects potential issues with high accuracy.
-                </p>
-              </div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                <input 
-                  ref={fileInputRef}
-                  type="file" 
-                  accept="image/*"
-                  onChange={handleUpload}
-                  disabled={isAnalyzing}
-                  className="hidden"
-                />
-                <Button
-                  size="lg"
-                  className="bg-background text-primary hover:bg-background/90 px-8 py-6 text-lg"
-                  onClick={triggerFileInput}
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
+        {/* Main Action Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card A: Clinical OPG X-ray Analysis */}
+          <Card className="border-2 border-primary/20 hover:border-primary/50 transition-all">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Scan className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Clinical OPG X-ray Analysis</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Upload panoramic dental X-rays for structural segmentation and deep internal tissue anomaly detection.
+                  </p>
+                </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }} className="w-full md:w-auto">
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto bg-primary hover:bg-primary/90"
+                    onClick={() => navigate("/dashboard/xray")}
+                  >
                     <>
                       <Upload className="mr-2 w-5 h-5" />
-                      Upload X-ray
+                      Start X-ray Scan
                     </>
-                  )}
-                </Button>
-              </motion.div>
-            </div>
-          </CardContent>
-        </Card>
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card B: Real Image Caries Detection */}
+          <Card className="border-2 border-teal-500/20 hover:border-teal-500/50 transition-all">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-teal-500/10 flex items-center justify-center">
+                  <FileImage className="w-8 h-8 text-teal-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Real Image Caries Detection</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Scan standard surface photos of teeth to instantly identify visible cavities, surface decay spots, and enamel wear.
+                  </p>
+                </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }} className="w-full md:w-auto">
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto bg-teal-500 hover:bg-teal-500/90"
+                    onClick={() => navigate("/dashboard/photo-analysis")}
+                  >
+                    <>
+                      <Scan className="mr-2 w-5 h-5" />
+                      Run Photo Diagnostics
+                    </>
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card C: AI Clinical Guidance & Chatbot */}
+          <Card className="border-2 border-purple-500/20 hover:border-purple-500/50 transition-all">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                  <Bot className="w-8 h-8 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">AI Clinical Guidance & Chatbot</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Consult our multimodal assistant regarding symptoms, home precautions, or custom dental guidance panels.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="border-purple-500/30 hover:border-purple-500 text-purple-500"
+                    onClick={() => navigate("/dashboard/assistant")}
+                  >
+                    <Upload className="mr-2 w-4 h-4" />
+                    Interactive Screening
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-purple-500/30 hover:border-purple-500 text-purple-500"
+                    onClick={() => navigate("/dashboard/assistant")}
+                  >
+                    <MessageSquare className="mr-2 w-4 h-4" />
+                    Chat with Assistant
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card D: Advanced Report Analytics */}
+          <Card className="border-2 border-orange-500/20 hover:border-orange-500/50 transition-all">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-8 h-8 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Advanced Report Analytics</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Dive into detailed reports, track your dental health progress, and view comprehensive analytics.
+                  </p>
+                </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }} className="w-full md:w-auto">
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto bg-orange-500 hover:bg-orange-500/90"
+                    onClick={() => navigate("/dashboard/reports")}
+                  >
+                    <FileText className="mr-2 w-5 h-5" />
+                    Analyze Saved Reports
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Scans */}
@@ -326,32 +398,29 @@ export default function UserOverview() {
                 <CardTitle className="text-lg">Upcoming Appointments</CardTitle>
               </CardHeader>
               <CardContent>
-                {upcomingAppointments.length > 0 ? (
+                {nextAppointment ? (
                   <div className="space-y-3">
-                    {upcomingAppointments.map((appointment, index) => (
-                      <div
-                        key={index}
-                        className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="font-semibold">{appointment.doctor}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {appointment.type}
-                            </p>
-                          </div>
-                          <Badge variant="secondary">Confirmed</Badge>
+                    <div
+                      className="p-4 rounded-lg bg-[#21b2c0]/10 hover:bg-[#21b2c0]/20 transition-colors border border-[#21b2c0]/20"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-semibold text-[#21b2c0]">{nextAppointment.doctor_name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {nextAppointment.clinic_name}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          {appointment.date}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <Clock className="w-4 h-4" />
-                          {appointment.time}
-                        </div>
+                        <Badge className="bg-[#21b2c0] text-white hover:bg-[#1a95a0]">Confirmed</Badge>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        {formatAppointmentDate(nextAppointment.appointment_date).date}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <Clock className="w-4 h-4" />
+                        {formatAppointmentDate(nextAppointment.appointment_date).time}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">

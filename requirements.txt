@@ -72,3 +72,12 @@ wcwidth==0.2.14
 huggingface-hub
 tensorflow
 tf-keras
+groq
+pdfplumber
+PyMuPDF
+python-docx
+tenacity
+passlib
+bcrypt
+sqlalchemy
+email-validator

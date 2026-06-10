@@ -74,7 +74,7 @@ export const Navbar = () => {
               className="gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300"
               onClick={() => navigate("/auth")}
             >
-              Upload X-ray
+              Login / Signup
             </Button>
           </div>
 
@@ -112,7 +112,7 @@ export const Navbar = () => {
                 className="gradient-primary text-primary-foreground w-full mt-2"
                 onClick={() => navigate("/auth")}
               >
-                Upload X-ray
+                Login / Signup
               </Button>
             </div>
           </motion.div>

@@ -81,3 +81,4 @@ passlib
 bcrypt
 sqlalchemy
 email-validator
+psycopg2-binary

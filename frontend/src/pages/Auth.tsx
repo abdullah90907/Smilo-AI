@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  ArrowLeft,
   Stethoscope,
   UserRound,
   GraduationCap,
@@ -34,7 +35,7 @@ type RoleType = "patient" | "doctor";
 
 export default function Auth() {
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>("login");
   const [selectedRole, setSelectedRole] = useState<RoleType>("patient");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +51,7 @@ export default function Auth() {
     age: "",
     gender: "",
   });
-  
+
   const [doctorRegisterForm, setDoctorRegisterForm] = useState({
     full_name: "",
     email: "",
@@ -125,7 +126,19 @@ export default function Auth() {
   ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {/* Back to Home Button */}
+      <motion.button
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        onClick={() => navigate("/")}
+        className="absolute top-4 left-4 md:top-6 md:left-6 z-50 flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-300 shadow-sm backdrop-blur-sm text-gray-700 border-gray-200 bg-white/80 hover:bg-white hover:text-[#21b2c0] hover:border-[#21b2c0]/30 lg:text-white lg:border-white/30 lg:bg-white/10 lg:hover:bg-white lg:hover:text-[#21b2c0] lg:hover:border-white"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </motion.button>
+
       {/* Left Branding Section */}
       <motion.div
         initial={{ opacity: 0, x: -50 }}
@@ -166,15 +179,10 @@ export default function Auth() {
           >
             {/* Logo */}
             <motion.div
-              className="flex items-center justify-center gap-3 mb-8"
+              className="flex items-center justify-center mb-8"
               whileHover={{ scale: 1.02 }}
             >
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
-              <span className="text-5xl font-bold text-white">
-                Smilo
-              </span>
+              <img src="/smilo_auth.gif" alt="Smilo Logo" className="h-32 md:h-40 w-auto object-contain " />
             </motion.div>
 
             {/* Tagline */}
@@ -238,12 +246,9 @@ export default function Auth() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex items-center justify-center gap-2 mb-8"
+            className="lg:hidden flex items-center justify-center mb-8"
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#21b2c0" }}>
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">Smilo</span>
+            <img src="/smiloai.png" alt="Smilo Logo" className="h-12 w-auto object-contain rounded-xl bg-white p-1" />
           </motion.div>
 
           {/* Glass Card */}
@@ -254,33 +259,31 @@ export default function Auth() {
             className="bg-white border border-gray-200 rounded-3xl p-8 shadow-xl"
           >
             {/* Main Tabs (Login/Register) */}
-          <div className="flex gap-2 mb-6 bg-gray-100 p-1.5 rounded-2xl">
+            <div className="flex gap-2 mb-6 bg-gray-100 p-1.5 rounded-2xl">
               {["login" as TabType, "register" as TabType].map((tab) => (
-                  <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                          activeTab === tab
-                              ? "bg-white text-[#21b2c0] shadow-md"
-                              : "text-gray-500 hover:text-gray-800"
-                      }`}
-                  >
-                      {tab === "login" ? "Sign In" : "Sign Up"}
-                  </button>
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${activeTab === tab
+                    ? "bg-white text-[#21b2c0] shadow-md"
+                    : "text-gray-500 hover:text-gray-800"
+                    }`}
+                >
+                  {tab === "login" ? "Sign In" : "Sign Up"}
+                </button>
               ))}
-          </div>
-          
+            </div>
+
             {/* Role Toggle */}
             <div className="flex gap-2 mb-8 bg-gray-100 p-1.5 rounded-2xl">
               {(activeTab === "login" ? loginTabs : registerTabs).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setSelectedRole(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                    selectedRole === tab.id
-                      ? "bg-white text-[#21b2c0] shadow-md"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${selectedRole === tab.id
+                    ? "bg-white text-[#21b2c0] shadow-md"
+                    : "text-gray-500 hover:text-gray-800"
+                    }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>

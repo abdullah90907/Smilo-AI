@@ -31,26 +31,20 @@ export const Navbar = () => {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-md"
-          : "bg-transparent"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? "bg-background/95 backdrop-blur-md shadow-md"
+        : "bg-transparent"
+        }`}
     >
       <div className="container mx-auto px-4 lg:px-8">
         <nav className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <motion.a
             href="#home"
-            className="flex items-center gap-2"
+            className="flex items-center"
             whileHover={{ scale: 1.02 }}
           >
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">
-              Smilo
-            </span>
+            <img src="/smiloai.gif" alt="Smilo Logo" className="h-20 md:h-24 w-auto object-contain" />
           </motion.a>
 
           {/* Desktop Navigation */}
@@ -69,8 +63,8 @@ export const Navbar = () => {
 
           {/* CTA Button */}
           <div className="hidden lg:block">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300"
               onClick={() => navigate("/auth")}
             >
@@ -108,7 +102,7 @@ export const Navbar = () => {
                   {link.name}
                 </a>
               ))}
-              <Button 
+              <Button
                 className="gradient-primary text-primary-foreground w-full mt-2"
                 onClick={() => navigate("/auth")}
               >

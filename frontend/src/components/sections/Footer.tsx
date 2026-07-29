@@ -26,11 +26,8 @@ export const Footer = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <a href="#home" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold">Smilo</span>
+            <a href="#home" className="flex items-center mb-4">
+              <img src="/smilo.png" alt="Smilo Logo" className="h-28 md:h-32 w-auto object-contain " />
             </a>
             <p className="text-background/70 mb-4 text-sm leading-relaxed">
               AI-Powered Dental Disease Detection System. Empowering dental
@@ -110,7 +107,7 @@ export const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-background/20 text-center">
           <p className="text-background/60 text-sm">
-            © 2026 Smilo – AI-Powered Dental Disease Detection | Final Year
+            © 2026 Smilo – AI-Powered Dental Disease Detection | Senior Year
             Project
           </p>
         </div>

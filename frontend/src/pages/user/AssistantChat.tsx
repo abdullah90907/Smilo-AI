@@ -1,6 +1,7 @@
 
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
+import { BASE_URL } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import {
   MessageSquare,
@@ -78,7 +79,7 @@ export default function AssistantChat() {
         requestBody.hidden_context = hiddenContextRef.current;
       }
 
-      const response = await fetch("http://127.0.0.1:8000/api/chat/message", {
+      const response = await fetch(`${BASE_URL}/api/chat/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),

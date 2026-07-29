@@ -43,11 +43,8 @@ export default function Dashboard() {
       >
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-foreground">Smilo</span>
+            <div className="flex items-center">
+              <img src="/smiloai.png" alt="Smilo Logo" className="h-16 md:h-20 w-auto object-contain" />
             </div>
 
             <div className="flex items-center gap-4">
@@ -225,9 +222,8 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <div
-                        className={`text-sm font-medium ${
-                          scan.status === "healthy" ? "text-green-500" : "text-yellow-500"
-                        }`}
+                        className={`text-sm font-medium ${scan.status === "healthy" ? "text-green-500" : "text-yellow-500"
+                          }`}
                       >
                         {scan.result}
                       </div>

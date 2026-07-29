@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { BASE_URL } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export default function MyProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/patient/profile", {
+        const res = await fetch(`${BASE_URL}/api/patient/profile`, {
           headers: {
             "x-user-id": localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).user_id || JSON.parse(localStorage.getItem("user")!).id : "",
           },
@@ -85,7 +86,7 @@ export default function MyProfile() {
         age: formData.age ? parseInt(formData.age) : null,
       };
 
-      const res = await fetch("http://127.0.0.1:8000/api/patient/profile", {
+      const res = await fetch(`${BASE_URL}/api/patient/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

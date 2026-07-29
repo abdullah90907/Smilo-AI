@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 from PIL import Image, ImageDraw, ImageFont
 import io
 import os
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 import uuid
 import base64
 import requests
@@ -299,8 +301,8 @@ async def analyze_xray(
                 case_id=case_id,
                 force_resegment=True
             )
-            overlay_url = f"http://127.0.0.1:8000{segmentation_result['urls']['overlay_url']}"
-            visual_extracted_url = f"http://127.0.0.1:8000{segmentation_result['urls']['visual_teeth_extracted_url']}"
+            overlay_url = f"{BACKEND_URL}{segmentation_result['urls']['overlay_url']}"
+            visual_extracted_url = f"{BACKEND_URL}{segmentation_result['urls']['visual_teeth_extracted_url']}"
             models_used["segmentation"] = True
 
         # Run caries detection on original image
@@ -310,7 +312,7 @@ async def analyze_xray(
         caries_image = draw_bounding_boxes(original_image, detections)
         caries_detection_path = os.path.join(output_dir, "caries_detection.png")
         caries_image.save(caries_detection_path, compress_level=0)
-        caries_detection_url = f"http://127.0.0.1:8000/static/segmentations/{case_id}/caries_detection.png"
+        caries_detection_url = f"{BACKEND_URL}/static/segmentations/{case_id}/caries_detection.png"
 
         caries_count = len(detections)
 
@@ -331,7 +333,7 @@ async def analyze_xray(
             "overlay_url": overlay_url,
             "visual_extracted_url": visual_extracted_url,
             "caries_detection_url": caries_detection_url,
-            "original_image_url": f"http://127.0.0.1:8000/static/segmentations/{case_id}/original.png",
+            "original_image_url": f"{BACKEND_URL}/static/segmentations/{case_id}/original.png",
             "models_used": models_used
         }
 
@@ -401,7 +403,7 @@ async def analyze_photo(
         detection_image = draw_bounding_boxes(original_image, detections)
         detection_image_path = os.path.join(output_dir, "caries-detection.png")
         detection_image.save(detection_image_path, compress_level=0)
-        detection_url = f"http://127.0.0.1:8000/static/photo-analyses/{case_id}/caries-detection.png"
+        detection_url = f"{BACKEND_URL}/static/photo-analyses/{case_id}/caries-detection.png"
 
         caries_count = len(detections)
 
@@ -420,7 +422,7 @@ async def analyze_photo(
             "recommendation": recommendation,
             "case_id": case_id,
             "detection_url": detection_url,
-            "original_image_url": f"http://127.0.0.1:8000/static/photo-analyses/{case_id}/original.png"
+            "original_image_url": f"{BACKEND_URL}/static/photo-analyses/{case_id}/original.png"
         }
 
         # Convert image to base64

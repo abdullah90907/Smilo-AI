@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { BASE_URL } from "@/lib/api";
 import {
   LayoutDashboard,
   Scan,
@@ -50,7 +51,7 @@ export default function UserSidebar() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/patient/profile", {
+      const res = await fetch(`${BASE_URL}/api/patient/profile`, {
         headers: {
           "x-user-id": localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).user_id || JSON.parse(localStorage.getItem("user")!).id : "",
         },
@@ -119,16 +120,15 @@ export default function UserSidebar() {
     >
       <ScrollArea className="flex-1">
         {/* Logo & User Info */}
-        <div className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">Smilo</span>
-            <Badge variant="secondary" className="ml-auto text-xs">Patient</Badge>
+        <div className="pt-1 pb-2.5 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <a href="/" className="flex items-center">
+              <img src="/smiloai.png" alt="Smilo Logo" className="h-24 w-auto object-contain" />
+            </a>
+            <Badge variant="secondary" className="text-xs">Patient</Badge>
           </div>
 
-          <Separator />
+          <Separator className="mt-8.5 mb-4" />
 
           {/* User Profile Section */}
           <div className="space-y-3">
@@ -157,10 +157,9 @@ export default function UserSidebar() {
               key={item.path}
               to={item.path}
               className={() =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                  isActivePath(item.path)
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActivePath(item.path)
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`
               }
             >

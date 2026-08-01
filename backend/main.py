@@ -726,20 +726,40 @@ async def register(request: dict, db: Session = Depends(get_db)):
     full_name = ""
     
     if role == "patient":
+        # Safely convert age to integer for strictly-typed databases like Postgres
+        age_val = request.get("age")
+        if age_val is not None and str(age_val).strip() != "":
+            try:
+                age_val = int(float(age_val))
+            except (ValueError, TypeError):
+                age_val = None
+        else:
+            age_val = None
+
         db_patient = PatientProfile(
             user_id=db_user.id,
             full_name=request.get("full_name"),
-            age=request.get("age"),
+            age=age_val,
             gender=request.get("gender")
         )
         db.add(db_patient)
         full_name = request.get("full_name")
     elif role == "doctor":
+        # Safely convert experience_years to integer
+        exp_val = request.get("experience_years")
+        if exp_val is not None and str(exp_val).strip() != "":
+            try:
+                exp_val = int(float(exp_val))
+            except (ValueError, TypeError):
+                exp_val = 0
+        else:
+            exp_val = 0
+
         db_doctor = DoctorProfile(
             user_id=db_user.id,
             full_name=request.get("full_name"),
             specialization=request.get("specialization"),
-            experience_years=request.get("experience_years"),
+            experience_years=exp_val,
             city=request.get("city"),
             qualifications=request.get("qualifications"),
             clinic_name=request.get("clinic_name")

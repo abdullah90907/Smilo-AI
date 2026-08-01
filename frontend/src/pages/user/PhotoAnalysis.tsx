@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { analyzePhoto, analyzePhotoGemini, getDoctors, bookAppointment } from "../../lib/api";
+import { analyzePhoto, analyzePhotoGemini, getDoctors, bookAppointment } from "@/lib/api";
 import { useState, useRef, useEffect } from "react";
 import { useXrayData } from "@/hooks/useXrayData";
 import { triggerRefreshReportsCount } from "@/components/ui/UserSidebar";

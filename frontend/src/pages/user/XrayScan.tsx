@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { analyzeXray } from "../../lib/api";
+import { analyzeXray } from "@/lib/api";
 import { useState, useRef } from "react";
 import { useXrayData } from "@/hooks/useXrayData";
 import { XrayAnalysisResult } from "@/types/xray";

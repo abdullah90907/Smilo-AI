@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { analyzeReport } from "../../lib/api";
+import { analyzeReport } from "@/lib/api";
 import { useState, useRef } from "react";
 import {
   Upload,

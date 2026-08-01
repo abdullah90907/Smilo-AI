@@ -16,8 +16,19 @@ import json
 from datetime import datetime
 
 # Import our services
-from app.services.teeth_segmenter import TeethSegmenter
-from app.services.photo_caries_detector import PhotoCariesDetector
+try:
+    from app.services.teeth_segmenter import TeethSegmenter
+    HAS_TEETH_SEGMENTER = True
+except ImportError:
+    TeethSegmenter = None
+    HAS_TEETH_SEGMENTER = False
+
+try:
+    from app.services.photo_caries_detector import PhotoCariesDetector
+    HAS_PHOTO_CARIES_DETECTOR = True
+except ImportError:
+    PhotoCariesDetector = None
+    HAS_PHOTO_CARIES_DETECTOR = False
 from app.services.gemini_service import gemini_service
 from app.services.chat_service import chat_service
 from app.services.report_analyzer import groq_service
@@ -104,8 +115,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(teeth_segmentation_router)
 
 # 4. Global services
-teeth_segmenter: TeethSegmenter | None = None
-photo_caries_detector: PhotoCariesDetector | None = None
+teeth_segmenter = None
+photo_caries_detector = None
 
 
 @app.on_event("startup")
@@ -123,25 +134,31 @@ async def load_models():
         traceback.print_exc()
 
     # Load TeethSegmenter service
-    try:
-        teeth_segmenter = TeethSegmenter(
-            model_repo="SerdarHelli/Segmentation-of-Teeth-in-Panoramic-X-ray-Image-Using-U-Net"
-        )
-        set_teeth_segmenter(teeth_segmenter)
-        print("✅ Teeth Segmenter service loaded successfully!")
-    except Exception as e:
-        print(f"⚠️ Warning: Teeth Segmenter service not loaded: {e}")
-        import traceback
-        traceback.print_exc()
+    if HAS_TEETH_SEGMENTER and TeethSegmenter is not None:
+        try:
+            teeth_segmenter = TeethSegmenter(
+                model_repo="SerdarHelli/Segmentation-of-Teeth-in-Panoramic-X-ray-Image-Using-U-Net"
+            )
+            set_teeth_segmenter(teeth_segmenter)
+            print("✅ Teeth Segmenter service loaded successfully!")
+        except Exception as e:
+            print(f"⚠️ Warning: Teeth Segmenter service not loaded: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print("ℹ️ Teeth Segmenter skipped (libraries not available)")
         
     # Load PhotoCariesDetector service
-    try:
-        photo_caries_detector = PhotoCariesDetector(model_path="best.pt")
-        print("✅ Photo Caries Detector service loaded successfully!")
-    except Exception as e:
-        print(f"⚠️ Warning: Photo Caries Detector service not loaded: {e}")
-        import traceback
-        traceback.print_exc()
+    if HAS_PHOTO_CARIES_DETECTOR and PhotoCariesDetector is not None:
+        try:
+            photo_caries_detector = PhotoCariesDetector(model_path="best.pt")
+            print("✅ Photo Caries Detector service loaded successfully!")
+        except Exception as e:
+            print(f"⚠️ Warning: Photo Caries Detector service not loaded: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print("ℹ️ Photo Caries Detector skipped (libraries not available)")
 
     print("All models loaded!")
     
@@ -395,9 +412,12 @@ async def analyze_photo(
         original_image.convert("RGB").save(original_image_path, compress_level=0)
 
         # Run caries detection
-        detections = []
-        if photo_caries_detector:
-            detections = photo_caries_detector.detect(original_image)
+        if not photo_caries_detector:
+            raise HTTPException(
+                status_code=503,
+                detail="Local photo caries detection model is disabled in this deployment to save resources. Please use the Gemini-based photo analysis instead."
+            )
+        detections = photo_caries_detector.detect(original_image)
 
         # Draw and save detection image
         detection_image = draw_bounding_boxes(original_image, detections)

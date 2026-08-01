@@ -58,20 +58,22 @@ six==1.17.0
 stack-data==0.6.3
 starlette==0.50.0
 sympy==1.14.0
-torch==2.9.1
-torchvision==0.24.1
+# Heavy ML packages - Commented out for free-tier Render production deployment.
+# Un-comment for full local execution.
+# torch==2.9.1
+# torchvision==0.24.1
 tornado==6.5.4
 traitlets==5.14.3
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-ultralytics==8.4.5
-ultralytics-thop==2.0.18
+# ultralytics==8.4.5
+# ultralytics-thop==2.0.18
 urllib3==2.6.3
 uvicorn==0.40.0
 wcwidth==0.2.14
 huggingface-hub
-tensorflow
-tf-keras
+# tensorflow
+# tf-keras
 groq
 pdfplumber
 PyMuPDF

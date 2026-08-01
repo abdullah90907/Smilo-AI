@@ -182,7 +182,7 @@ export default function Auth() {
               className="flex items-center justify-center mb-8"
               whileHover={{ scale: 1.02 }}
             >
-              <img src="/smilo_auth.gif" alt="Smilo Logo" className="h-32 md:h-40 w-auto object-contain " />
+              <img src="/smilo3d.png" alt="Smilo Logo" className="h-32 md:h-40 w-auto object-contain " />
             </motion.div>
 
             {/* Tagline */}

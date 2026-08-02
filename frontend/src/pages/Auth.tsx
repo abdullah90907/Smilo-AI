@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { register, login, seedDB } from "@/lib/api";
+import { register, login, demoLogin, seedDB } from "@/lib/api";
 
 type TabType = "login" | "register";
 type RoleType = "patient" | "doctor";
@@ -63,6 +63,8 @@ export default function Auth() {
     clinic_name: "",
   });
 
+  const [isDemoLoading, setIsDemoLoading] = useState<string | null>(null);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -80,6 +82,24 @@ export default function Auth() {
       alert("Login failed: " + (err as Error).message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (role: "patient" | "doctor") => {
+    setIsDemoLoading(role);
+    try {
+      const res = await demoLogin(role);
+      localStorage.setItem('user', JSON.stringify(res));
+      if (res.role === "doctor") {
+        navigate("/doctor-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Demo login failed: " + (err as Error).message);
+    } finally {
+      setIsDemoLoading(null);
     }
   };
 
@@ -394,6 +414,58 @@ export default function Auth() {
                       </>
                     )}
                   </Button>
+
+                  {/* Divider */}
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-3 text-gray-400 font-medium">or try a demo account</span>
+                    </div>
+                  </div>
+
+                  {/* Demo Login Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin("patient")}
+                      disabled={!!isDemoLoading}
+                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border-2 border-dashed border-[#21b2c0]/30 text-[#21b2c0] text-sm font-medium hover:bg-[#21b2c0]/5 hover:border-[#21b2c0]/50 transition-all duration-300 disabled:opacity-50"
+                    >
+                      {isDemoLoading === "patient" ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-[#21b2c0]/30 border-t-[#21b2c0] rounded-full"
+                        />
+                      ) : (
+                        <>
+                          <UserRound className="w-4 h-4" />
+                          Guest Patient
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin("doctor")}
+                      disabled={!!isDemoLoading}
+                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border-2 border-dashed border-[#21b2c0]/30 text-[#21b2c0] text-sm font-medium hover:bg-[#21b2c0]/5 hover:border-[#21b2c0]/50 transition-all duration-300 disabled:opacity-50"
+                    >
+                      {isDemoLoading === "doctor" ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-[#21b2c0]/30 border-t-[#21b2c0] rounded-full"
+                        />
+                      ) : (
+                        <>
+                          <Stethoscope className="w-4 h-4" />
+                          Guest Doctor
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </motion.form>
               )}
 

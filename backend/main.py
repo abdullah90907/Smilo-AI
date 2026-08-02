@@ -856,6 +856,81 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         message="Login successful!"
     )
 
+# --------------------------
+# Demo / Guest Login Endpoint
+# --------------------------
+DEMO_PATIENT_EMAIL = "demo.patient@smiloai.com"
+DEMO_DOCTOR_EMAIL = "demo.doctor@smiloai.com"
+DEMO_PASSWORD = "demo1234"
+
+@app.post("/api/demo-login", response_model=AuthResponse)
+async def demo_login(request: dict, db: Session = Depends(get_db)):
+    """
+    Instantly log in as a demo patient or doctor.
+    If the demo account doesn't exist yet, it is created automatically.
+    """
+    role = request.get("role", "patient")
+    print(f"\n🎭 [DEMO-LOGIN] Demo login requested for role: {role}")
+
+    if role not in ("patient", "doctor"):
+        raise HTTPException(status_code=400, detail="Invalid role. Must be 'patient' or 'doctor'")
+
+    demo_email = DEMO_PATIENT_EMAIL if role == "patient" else DEMO_DOCTOR_EMAIL
+
+    # Check if demo account already exists
+    user = db.query(User).filter(User.email == demo_email).first()
+
+    if not user:
+        print(f"🎭 [DEMO-LOGIN] Demo {role} account not found. Creating...")
+        hashed = hash_password(DEMO_PASSWORD)
+        user = User(email=demo_email, hashed_password=hashed, role=role)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        if role == "patient":
+            profile = PatientProfile(
+                user_id=user.id,
+                full_name="Demo Patient",
+                age=25,
+                gender="other"
+            )
+            db.add(profile)
+        else:
+            profile = DoctorProfile(
+                user_id=user.id,
+                full_name="Dr. Demo",
+                specialization="General Dentistry",
+                experience_years=5,
+                city="London",
+                qualifications="BDS, MDS",
+                clinic_name="Smilo Demo Clinic",
+                is_verified=True
+            )
+            db.add(profile)
+        db.commit()
+        print(f"✅ [DEMO-LOGIN] Demo {role} account created (id={user.id})")
+    else:
+        print(f"✅ [DEMO-LOGIN] Demo {role} account found (id={user.id})")
+
+    # Fetch profile name
+    full_name = ""
+    if role == "patient":
+        p = db.query(PatientProfile).filter(PatientProfile.user_id == user.id).first()
+        full_name = p.full_name if p else "Demo Patient"
+    else:
+        d = db.query(DoctorProfile).filter(DoctorProfile.user_id == user.id).first()
+        full_name = d.full_name if d else "Dr. Demo"
+
+    return AuthResponse(
+        success=True,
+        user_id=user.id,
+        role=user.role,
+        full_name=full_name,
+        email=user.email,
+        message=f"Welcome! You're logged in as a demo {role}."
+    )
+
 @app.get("/api/doctors")
 async def get_all_doctors(db: Session = Depends(get_db)):
     print(f"✅ [GET /api/doctors] Fetching all doctors")

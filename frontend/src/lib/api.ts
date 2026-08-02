@@ -178,6 +178,29 @@ export const login = async (email: string, password: string, required_role: stri
   }
 };
 
+export const demoLogin = async (role: string) => {
+  console.log("🎭 [API] demoLogin called with role:", role);
+  try {
+    const response = await fetch(BASE_URL + "/api/demo-login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role }),
+    });
+    console.log("🎭 [API] demoLogin response status:", response.status);
+    if (!response.ok) {
+      const err = await response.json();
+      console.error("❌ [API] demoLogin error response:", err);
+      throw new Error(err.detail || "Demo login failed");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("❌ [API] Demo login failed:", error);
+    throw error;
+  }
+};
+
 export const getDoctors = async () => {
   console.log("📤 [API] getDoctors called");
   try {

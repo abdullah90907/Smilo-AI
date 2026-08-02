@@ -105,10 +105,30 @@ export const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-background/20 text-center">
+        <div className="pt-8 border-t border-background/20 text-center space-y-3">
           <p className="text-background/60 text-sm">
-            © 2026 Smilo – AI-Powered Dental Disease Detection | Senior Year
-            Project
+            © 2026 Smilo – AI-Powered Dental Disease Detection & Diagnostics. All Rights Reserved.
+          </p>
+          <p className="text-background/80 text-sm">
+            Senior Year Project developed by{" "}
+            <a 
+              href="https://abdullahsiddique.co.uk" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary hover:underline font-semibold"
+            >
+              Abdullah Siddique
+            </a>
+            . Connect on{" "}
+            <a 
+              href="https://www.linkedin.com/in/mr-abdullah-siddique/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary hover:underline font-semibold"
+            >
+              LinkedIn
+            </a>
+            .
           </p>
         </div>
       </div>

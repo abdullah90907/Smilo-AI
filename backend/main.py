@@ -33,7 +33,7 @@ from app.services.gemini_service import gemini_service
 from app.services.chat_service import chat_service
 from app.services.report_analyzer import groq_service
 from app.api.routes.teeth_segmentation import router as teeth_segmentation_router, set_teeth_segmenter
-from app.db.session import init_db, get_db, engine
+from app.db.session import init_db, get_db, engine, SessionLocal
 from app.db.models import User, PatientProfile, DoctorProfile, Appointment, ScanReport, ChatMessage
 from app.schemas.auth import (
     UserCreatePatient,
@@ -160,6 +160,17 @@ async def load_models():
     try:
         init_db()
         print("✅ Database initialized!")
+        
+        # Seed demo database data on startup for persistent guest/demo access
+        db = SessionLocal()
+        try:
+            _seed_demo_data(db)
+            print("✅ Demo data successfully seeded on startup!")
+        except Exception as se:
+            print(f"⚠️ Warning: Demo data seeding failed on startup: {se}")
+        finally:
+            db.close()
+            
     except Exception as e:
         print(f"❌ Error initializing DB: {e}")
         import traceback

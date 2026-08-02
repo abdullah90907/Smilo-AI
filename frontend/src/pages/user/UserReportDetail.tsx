@@ -59,9 +59,15 @@ export default function UserReportDetail() {
 
   useEffect(() => {
     if (!id) return;
+    const parsedId = parseInt(id);
+    if (isNaN(parsedId)) {
+      console.warn("Invalid report ID provided to details page:", id);
+      setLoading(false);
+      return;
+    }
     const fetchReport = async () => {
       try {
-        const data = await getReportById(parseInt(id));
+        const data = await getReportById(parsedId);
         setReport(data);
       } catch (e) {
         console.error("Error fetching report:", e);

@@ -191,8 +191,14 @@ export default function PhotoAnalysis() {
       setLoadingGemini(true);
       try {
         const result = await analyzePhotoGemini(file);
-        triggerRefreshReportsCount();
-        navigate(`/dashboard/reports/${result.report_id}`);
+        if (result && result.report_id) {
+          triggerRefreshReportsCount();
+          navigate(`/dashboard/reports/${result.report_id}`);
+        } else {
+          console.error("Gemini analysis failed or returned no report ID:", result);
+          toast.error(result?.message || "Failed to analyze photo. Please verify backend configurations.");
+          alert(`❌ Gemini Analysis Failed: ${result?.message || "Verify your API Key is set in backend configurations."}`);
+        }
       } catch (error) {
         console.error("Gemini analysis error:", error);
         alert("❌ Error: Could not connect to Smilo Backend. Is the backend running on port 8000?");

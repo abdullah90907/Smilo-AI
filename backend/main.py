@@ -10,7 +10,7 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 import uuid
 import base64
 import requests
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 import json
 from datetime import datetime
@@ -42,18 +42,21 @@ from app.schemas.auth import (
     AuthResponse
 )
 
-# Initialize password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Helper function: Use bcrypt directly to avoid passlib compatibility issues in Python 3.12+
+def hash_password(password: str) -> str:
+    # Encrypt password using bcrypt directly
+    pwd_bytes = password.encode('utf-8')[:72]  # Truncate to 72 bytes safely
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
-# Helper function: Truncate password to 72 bytes for bcrypt!
-def hash_password(password: str):
-    # Bcrypt max length is 72 bytes. Encode and truncate safely.
-    truncated = password.encode('utf-8')[:72].decode('utf-8', 'ignore')
-    return pwd_context.hash(truncated)
-
-def verify_password(plain_password: str, hashed_password: str):
-    truncated = plain_password.encode('utf-8')[:72].decode('utf-8', 'ignore')
-    return pwd_context.verify(truncated, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        pwd_bytes = plain_password.encode('utf-8')[:72]
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 # Dummy get current user using x-user-id header
 def get_current_user(x_user_id: str = Header(None), db: Session = Depends(get_db)):
@@ -113,7 +116,21 @@ async def add_cors_headers(request, call_next):
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"❌ Uncaught Exception: {e}\n{tb}")
+        response = JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "traceback": tb
+            }
+        )
+
     origin = request.headers.get("origin")
     if origin:
         response.headers["Access-Control-Allow-Origin"] = origin

@@ -2082,6 +2082,11 @@ async def delete_report(
         if report.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="You do not have access to this report")
         
+        # Nullify foreign key references in appointments to avoid database constraint errors
+        db.query(Appointment).filter(Appointment.xray_report_id == report.id).update({Appointment.xray_report_id: None}, synchronize_session=False)
+        db.query(Appointment).filter(Appointment.photo_report_id == report.id).update({Appointment.photo_report_id: None}, synchronize_session=False)
+        db.query(Appointment).filter(Appointment.gemini_report_id == report.id).update({Appointment.gemini_report_id: None}, synchronize_session=False)
+        
         db.delete(report)
         db.commit()
         return {"success": True}
@@ -2105,9 +2110,18 @@ async def delete_multiple_reports(
             ScanReport.id.in_(request.report_ids),
             ScanReport.user_id == current_user.id
         ).all()
-        for report in reports:
-            db.delete(report)
-        db.commit()
+        
+        report_ids = [r.id for r in reports]
+        if report_ids:
+            # Nullify foreign key references in appointments for all targeted reports
+            db.query(Appointment).filter(Appointment.xray_report_id.in_(report_ids)).update({Appointment.xray_report_id: None}, synchronize_session=False)
+            db.query(Appointment).filter(Appointment.photo_report_id.in_(report_ids)).update({Appointment.photo_report_id: None}, synchronize_session=False)
+            db.query(Appointment).filter(Appointment.gemini_report_id.in_(report_ids)).update({Appointment.gemini_report_id: None}, synchronize_session=False)
+            
+            for report in reports:
+                db.delete(report)
+            db.commit()
+            
         return {"success": True, "deleted_count": len(reports)}
     except Exception as e:
         print(f"❌ [POST /api/reports/delete-multiple] Error: {e}")

@@ -84,3 +84,4 @@ bcrypt
 sqlalchemy
 email-validator
 psycopg2-binary
+google-genai

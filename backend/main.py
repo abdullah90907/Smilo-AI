@@ -342,6 +342,9 @@ async def analyze_xray(
             "caries_detection": True  # Roboflow is always available
         }
 
+        overlay_base64 = None
+        visual_extracted_base64 = None
+
         # Use our new TeethSegmenter
         if teeth_segmenter:
             segmentation_result = teeth_segmenter.segment_image(
@@ -353,6 +356,23 @@ async def analyze_xray(
             visual_extracted_url = f"{BACKEND_URL}{segmentation_result['urls']['visual_teeth_extracted_url']}"
             models_used["segmentation"] = True
 
+            # Convert segmentations to base64 for persistent DB storage
+            overlay_path = os.path.join(output_dir, "overlay.png")
+            if os.path.exists(overlay_path):
+                try:
+                    with open(overlay_path, "rb") as f:
+                        overlay_base64 = base64.b64encode(f.read()).decode("utf-8")
+                except Exception as e:
+                    print(f"Error base64-encoding overlay image: {e}")
+
+            extracted_path = os.path.join(output_dir, "visual_teeth_extracted.png")
+            if os.path.exists(extracted_path):
+                try:
+                    with open(extracted_path, "rb") as f:
+                        visual_extracted_base64 = base64.b64encode(f.read()).decode("utf-8")
+                except Exception as e:
+                    print(f"Error base64-encoding extracted teeth image: {e}")
+
         # Run caries detection on original image
         detections = detect_caries_roboflow(original_image)
 
@@ -361,6 +381,15 @@ async def analyze_xray(
         caries_detection_path = os.path.join(output_dir, "caries_detection.png")
         caries_image.save(caries_detection_path, compress_level=0)
         caries_detection_url = f"{BACKEND_URL}/static/segmentations/{case_id}/caries_detection.png"
+
+        # Convert caries_image to base64 for persistent DB storage
+        caries_detection_base64 = None
+        try:
+            caries_buffered = io.BytesIO()
+            caries_image.convert("RGB").save(caries_buffered, format="JPEG")
+            caries_detection_base64 = base64.b64encode(caries_buffered.getvalue()).decode("utf-8")
+        except Exception as e:
+            print(f"Error base64-encoding caries detection image: {e}")
 
         caries_count = len(detections)
 
@@ -379,8 +408,11 @@ async def analyze_xray(
             "recommendation": recommendation,
             "case_id": case_id,
             "overlay_url": overlay_url,
+            "overlay_base64": overlay_base64,
             "visual_extracted_url": visual_extracted_url,
+            "visual_extracted_base64": visual_extracted_base64,
             "caries_detection_url": caries_detection_url,
+            "caries_detection_base64": caries_detection_base64,
             "original_image_url": f"{BACKEND_URL}/static/segmentations/{case_id}/original.png",
             "models_used": models_used
         }
@@ -456,6 +488,15 @@ async def analyze_photo(
         detection_image.save(detection_image_path, compress_level=0)
         detection_url = f"{BACKEND_URL}/static/photo-analyses/{case_id}/caries-detection.png"
 
+        # Convert detection_image to base64 for persistent DB storage
+        detection_base64 = None
+        try:
+            detection_buffered = io.BytesIO()
+            detection_image.convert("RGB").save(detection_buffered, format="JPEG")
+            detection_base64 = base64.b64encode(detection_buffered.getvalue()).decode("utf-8")
+        except Exception as e:
+            print(f"Error base64-encoding detection image: {e}")
+
         caries_count = len(detections)
 
         severity = "Healthy"
@@ -473,6 +514,7 @@ async def analyze_photo(
             "recommendation": recommendation,
             "case_id": case_id,
             "detection_url": detection_url,
+            "detection_base64": detection_base64,
             "original_image_url": f"{BACKEND_URL}/static/photo-analyses/{case_id}/original.png"
         }
 

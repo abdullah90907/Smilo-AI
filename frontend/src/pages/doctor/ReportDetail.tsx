@@ -202,12 +202,18 @@ export default function ReportDetail() {
                       </div>
                       {(() => {
                         const parsedData = appointment.xray_report.result_json ? JSON.parse(appointment.xray_report.result_json) : {};
-                        if (parsedData.caries_detection_url || parsedData.overlay_url) {
+                        if (parsedData.caries_detection_url || parsedData.overlay_url || parsedData.caries_detection_base64 || parsedData.overlay_base64) {
                           return (
                             <div className="relative rounded-xl overflow-hidden bg-muted mx-auto max-w-3xl">
                               <div className="text-sm text-muted-foreground mb-2">AI Detection Overlay</div>
                               <img
-                                src={parsedData.caries_detection_url || parsedData.overlay_url}
+                                src={
+                                  parsedData.caries_detection_base64
+                                    ? `data:image/png;base64,${parsedData.caries_detection_base64}`
+                                    : parsedData.overlay_base64
+                                    ? `data:image/png;base64,${parsedData.overlay_base64}`
+                                    : parsedData.caries_detection_url || parsedData.overlay_url
+                                }
                                 alt="AI Detection"
                                 className="w-full h-auto max-h-[500px] object-contain rounded-xl shadow-sm border border-gray-100 bg-gray-50"
                               />
@@ -268,12 +274,16 @@ export default function ReportDetail() {
                       </div>
                       {(() => {
                         const parsedData = appointment.photo_report.result_json ? JSON.parse(appointment.photo_report.result_json) : {};
-                        if (parsedData.detection_url) {
+                        if (parsedData.detection_url || parsedData.detection_base64) {
                           return (
                             <div className="relative rounded-xl overflow-hidden bg-muted mx-auto max-w-3xl">
                               <div className="text-sm text-muted-foreground mb-2">YOLO Detection Output</div>
                               <img
-                                src={parsedData.detection_url}
+                                src={
+                                  parsedData.detection_base64
+                                    ? `data:image/png;base64,${parsedData.detection_base64}`
+                                    : parsedData.detection_url
+                                }
                                 alt="YOLO Detection"
                                 className="w-full h-auto max-h-[500px] object-contain rounded-xl shadow-sm border border-gray-100 bg-gray-50"
                               />

@@ -343,7 +343,7 @@ export default function UserReportDetail() {
                     </CardHeader>
                     <CardContent className="p-4">
                       <img
-                        src={resultData.overlay_url || resultData.segmentation_url}
+                        src={resultData.overlay_base64 ? `data:image/png;base64,${resultData.overlay_base64}` : (resultData.overlay_url || resultData.segmentation_url)}
                         alt="Segmentation Mask"
                         className="w-full h-auto object-contain rounded-xl shadow-sm border border-gray-100"
                       />
@@ -352,7 +352,7 @@ export default function UserReportDetail() {
                 )}
 
                 {/* Extracted Teeth */}
-                {resultData && resultData.visual_extracted_url && (
+                {resultData && (resultData.visual_extracted_url || resultData.visual_extracted_base64) && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-xl">Extracted Teeth</CardTitle>
@@ -360,7 +360,7 @@ export default function UserReportDetail() {
                     </CardHeader>
                     <CardContent className="p-4">
                       <img
-                        src={resultData.visual_extracted_url}
+                        src={resultData.visual_extracted_base64 ? `data:image/png;base64,${resultData.visual_extracted_base64}` : resultData.visual_extracted_url}
                         alt="Extracted Teeth"
                         className="w-full h-auto object-contain rounded-xl shadow-sm border border-gray-100"
                       />
@@ -369,7 +369,7 @@ export default function UserReportDetail() {
                 )}
 
                 {/* Caries Detection */}
-                {resultData && resultData.caries_detection_url && (
+                {resultData && (resultData.caries_detection_url || resultData.caries_detection_base64) && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-xl">Comprehensive AI Findings</CardTitle>
@@ -377,7 +377,7 @@ export default function UserReportDetail() {
                     </CardHeader>
                     <CardContent className="p-4">
                       <img
-                        src={resultData.caries_detection_url}
+                        src={resultData.caries_detection_base64 ? `data:image/png;base64,${resultData.caries_detection_base64}` : resultData.caries_detection_url}
                         alt="Comprehensive AI Findings"
                         className="w-full h-auto object-contain rounded-xl shadow-sm border border-gray-100"
                       />
@@ -493,7 +493,7 @@ export default function UserReportDetail() {
                     <CardContent className="p-4">
                       <div className="relative rounded-xl overflow-hidden bg-muted mx-auto max-w-md">
                         <img
-                          src={resultData.detection_url}
+                          src={resultData.detection_base64 ? `data:image/png;base64,${resultData.detection_base64}` : resultData.detection_url}
                           alt="YOLO Detection"
                           className="w-full h-auto max-h-[450px] object-contain rounded-xl shadow-sm border border-gray-100 bg-gray-50"
                         />

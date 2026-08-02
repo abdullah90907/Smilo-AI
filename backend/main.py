@@ -863,11 +863,265 @@ DEMO_PATIENT_EMAIL = "demo.patient@smiloai.com"
 DEMO_DOCTOR_EMAIL = "demo.doctor@smiloai.com"
 DEMO_PASSWORD = "demo1234"
 
+
+def _ensure_demo_account(db: Session, role: str):
+    """Create the demo user + profile if it doesn't already exist. Returns the User row."""
+    demo_email = DEMO_PATIENT_EMAIL if role == "patient" else DEMO_DOCTOR_EMAIL
+    user = db.query(User).filter(User.email == demo_email).first()
+    if user:
+        return user
+
+    print(f"🎭 [DEMO] Creating demo {role} account...")
+    hashed = hash_password(DEMO_PASSWORD)
+    user = User(email=demo_email, hashed_password=hashed, role=role)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    if role == "patient":
+        profile = PatientProfile(
+            user_id=user.id,
+            full_name="Demo Patient",
+            age=25,
+            gender="other"
+        )
+        db.add(profile)
+    else:
+        profile = DoctorProfile(
+            user_id=user.id,
+            full_name="Dr. Demo",
+            specialization="General Dentistry",
+            experience_years=5,
+            city="London",
+            qualifications="BDS, MDS",
+            clinic_name="Smilo Demo Clinic",
+            is_verified=True
+        )
+        db.add(profile)
+    db.commit()
+    print(f"✅ [DEMO] Demo {role} account created (id={user.id})")
+    return user
+
+
+def _seed_demo_data(db: Session):
+    """
+    Ensure both demo accounts exist with sample reports and an appointment.
+    This is idempotent — if reports/appointment already exist, it skips.
+    """
+    # 1. Ensure both demo accounts exist
+    demo_patient = _ensure_demo_account(db, "patient")
+    demo_doctor = _ensure_demo_account(db, "doctor")
+
+    # 2. Check if demo reports already exist (skip if so)
+    existing_reports = db.query(ScanReport).filter(ScanReport.user_id == demo_patient.id).count()
+    if existing_reports > 0:
+        print(f"🎭 [DEMO] Demo reports already exist ({existing_reports}). Skipping seed.")
+    else:
+        print(f"🎭 [DEMO] Seeding demo reports for patient id={demo_patient.id}...")
+        from datetime import timedelta
+
+        now = datetime.utcnow()
+
+        # --- X-Ray Report ---
+        xray_report = ScanReport(
+            user_id=demo_patient.id,
+            created_at=now - timedelta(days=3),
+            report_type="xray",
+            filename="demo_xray_scan.jpg",
+            findings="AI analysis detected potential dental caries on lower left molar (tooth #36). "
+                     "Segmentation model identified 28 teeth in the panoramic X-ray. "
+                     "Areas of radiolucency observed near the crown of tooth #36 and #46.",
+            summary="Dental caries detected with moderate severity. Recommend clinical examination.",
+            ai_prediction="Dental Caries",
+            confidence="87.3%",
+            severity="Moderate",
+            status="pending",
+            result_json=json.dumps({
+                "success": True,
+                "diagnosis": "caries",
+                "predictions": [
+                    {"label": "Dental Caries", "confidence": 0.873, "box": [120, 200, 280, 340]},
+                    {"label": "Dental Caries", "confidence": 0.654, "box": [400, 190, 520, 310]}
+                ],
+                "total_detections": 2,
+                "summary": "2 potential caries regions detected in the dental X-ray."
+            })
+        )
+        db.add(xray_report)
+
+        # --- Photo Report ---
+        photo_report = ScanReport(
+            user_id=demo_patient.id,
+            created_at=now - timedelta(days=2),
+            report_type="photo",
+            filename="demo_intraoral_photo.jpg",
+            findings="Visual inspection of intra-oral photograph shows discoloration on the occlusal surface "
+                     "of the lower right second premolar. Minor plaque accumulation detected along the gum line.",
+            summary="Mild discoloration and early-stage plaque. Improved oral hygiene recommended.",
+            ai_prediction="Early Caries",
+            confidence="72.1%",
+            severity="Mild",
+            status="pending",
+            result_json=json.dumps({
+                "success": True,
+                "diagnosis": "caries",
+                "predictions": [
+                    {"label": "Early Caries", "confidence": 0.721, "box": [150, 180, 290, 300]}
+                ],
+                "total_detections": 1,
+                "summary": "1 region of early caries detected in the dental photograph."
+            })
+        )
+        db.add(photo_report)
+
+        # --- Gemini (AI Assessment) Report ---
+        gemini_report = ScanReport(
+            user_id=demo_patient.id,
+            created_at=now - timedelta(days=1),
+            report_type="gemini",
+            filename="demo_gemini_assessment.jpg",
+            findings="Comprehensive AI dental assessment:\n\n"
+                     "1. **Tooth Condition**: Overall dentition appears generally healthy with minor concerns.\n"
+                     "2. **Caries Risk**: Moderate risk — early signs of demineralization on occlusal surfaces.\n"
+                     "3. **Gum Health**: Mild gingival inflammation observed around lower anterior teeth.\n"
+                     "4. **Oral Hygiene**: Fair — some plaque visible at the gum margins.\n\n"
+                     "**Recommendations**:\n"
+                     "- Schedule a professional cleaning within the next 2 weeks\n"
+                     "- Use fluoride toothpaste twice daily\n"
+                     "- Consider dental sealants for at-risk molars\n"
+                     "- Follow up in 3–6 months for monitoring",
+            summary="AI assessment indicates moderate caries risk with mild gingival inflammation. Professional cleaning recommended.",
+            ai_prediction="Moderate Caries Risk",
+            confidence="78.5%",
+            severity="Moderate",
+            status="pending",
+            result_json=json.dumps({
+                "success": True,
+                "analysis": "Comprehensive dental photo assessment by Gemini AI.",
+                "risk_level": "moderate",
+                "conditions_detected": ["early demineralization", "mild gingivitis", "plaque accumulation"],
+                "recommendations": [
+                    "Professional dental cleaning",
+                    "Fluoride toothpaste",
+                    "Dental sealants for molars",
+                    "Follow-up in 3-6 months"
+                ]
+            })
+        )
+        db.add(gemini_report)
+
+        # --- Document/Report Analysis ---
+        doc_report = ScanReport(
+            user_id=demo_patient.id,
+            created_at=now - timedelta(hours=12),
+            report_type="document",
+            filename="demo_dental_report.pdf",
+            findings="Extracted from uploaded dental report document:\n\n"
+                     "Patient presented with complaints of sensitivity in the lower right quadrant. "
+                     "Clinical examination revealed class II cavity on tooth #46. "
+                     "Periodontal probing depths within normal limits (2-3mm). "
+                     "No mobility detected. Bitewing radiograph confirms interproximal caries on #46 distal surface.\n\n"
+                     "Treatment Plan: Composite restoration on tooth #46.",
+            summary="Document analysis: Class II cavity on tooth #46. Composite restoration recommended.",
+            ai_prediction="Class II Cavity",
+            confidence="91.2%",
+            severity="Moderate",
+            status="pending",
+            result_json=json.dumps({
+                "success": True,
+                "extracted_text": "Clinical examination revealed class II cavity on tooth #46...",
+                "key_findings": ["Class II cavity on tooth #46", "Interproximal caries on distal surface"],
+                "treatment_plan": "Composite restoration on tooth #46",
+                "urgency": "moderate"
+            })
+        )
+        db.add(doc_report)
+
+        db.commit()
+        db.refresh(xray_report)
+        db.refresh(photo_report)
+        db.refresh(gemini_report)
+        db.refresh(doc_report)
+        print(f"✅ [DEMO] 4 demo reports created (xray={xray_report.id}, photo={photo_report.id}, gemini={gemini_report.id}, doc={doc_report.id})")
+
+    # 3. Check if appointment already exists between demo patient & doctor
+    existing_appt = db.query(Appointment).filter(
+        Appointment.patient_id == demo_patient.id,
+        Appointment.doctor_id == demo_doctor.id
+    ).first()
+
+    if existing_appt:
+        print(f"🎭 [DEMO] Demo appointment already exists (id={existing_appt.id}). Skipping.")
+    else:
+        # Fetch the demo reports to attach to the appointment
+        demo_xray = db.query(ScanReport).filter(
+            ScanReport.user_id == demo_patient.id,
+            ScanReport.report_type == "xray"
+        ).first()
+        demo_photo = db.query(ScanReport).filter(
+            ScanReport.user_id == demo_patient.id,
+            ScanReport.report_type == "photo"
+        ).first()
+        demo_gemini = db.query(ScanReport).filter(
+            ScanReport.user_id == demo_patient.id,
+            ScanReport.report_type == "gemini"
+        ).first()
+
+        from datetime import timedelta
+        appt = Appointment(
+            patient_id=demo_patient.id,
+            doctor_id=demo_doctor.id,
+            status="approved",
+            xray_report_id=demo_xray.id if demo_xray else None,
+            photo_report_id=demo_photo.id if demo_photo else None,
+            gemini_report_id=demo_gemini.id if demo_gemini else None,
+            appointment_date=datetime.utcnow() + timedelta(days=5),
+            doctor_note="Welcome to Smilo AI! This is a demo appointment. Feel free to explore the consultation chat.",
+            has_new_uploads=True,
+            created_at=datetime.utcnow() - timedelta(days=1)
+        )
+        db.add(appt)
+        db.commit()
+        db.refresh(appt)
+        print(f"✅ [DEMO] Demo appointment created (id={appt.id})")
+
+        # 4. Add sample chat messages to the appointment
+        chat_msgs = [
+            ChatMessage(
+                appointment_id=appt.id,
+                sender_role="patient",
+                message="Hello Dr. Demo! I've been experiencing some tooth sensitivity on my lower right side. I've attached my X-ray and photo reports for your review.",
+                timestamp=datetime.utcnow() - timedelta(hours=20)
+            ),
+            ChatMessage(
+                appointment_id=appt.id,
+                sender_role="doctor",
+                message="Hi! Thank you for sharing your reports. I've reviewed your X-ray and it shows a moderate cavity on tooth #36. The AI detection aligns with what I see clinically. Let's discuss treatment options.",
+                timestamp=datetime.utcnow() - timedelta(hours=18)
+            ),
+            ChatMessage(
+                appointment_id=appt.id,
+                sender_role="patient",
+                message="That sounds concerning. What treatment would you recommend?",
+                timestamp=datetime.utcnow() - timedelta(hours=16)
+            ),
+            ChatMessage(
+                appointment_id=appt.id,
+                sender_role="doctor",
+                message="Based on the severity, I'd recommend a composite filling. It's a straightforward procedure. We should also do a professional cleaning to address the mild plaque buildup I noticed in your photo report. I'll schedule both for your next visit.",
+                timestamp=datetime.utcnow() - timedelta(hours=14)
+            ),
+        ]
+        db.add_all(chat_msgs)
+        db.commit()
+        print(f"✅ [DEMO] {len(chat_msgs)} demo chat messages created for appointment {appt.id}")
+
+
 @app.post("/api/demo-login", response_model=AuthResponse)
 async def demo_login(request: dict, db: Session = Depends(get_db)):
     """
     Instantly log in as a demo patient or doctor.
-    If the demo account doesn't exist yet, it is created automatically.
+    If the demo accounts don't exist yet, they are created with sample data.
     """
     role = request.get("role", "patient")
     print(f"\n🎭 [DEMO-LOGIN] Demo login requested for role: {role}")
@@ -875,43 +1129,12 @@ async def demo_login(request: dict, db: Session = Depends(get_db)):
     if role not in ("patient", "doctor"):
         raise HTTPException(status_code=400, detail="Invalid role. Must be 'patient' or 'doctor'")
 
+    # Seed all demo data (idempotent — safe to call multiple times)
+    _seed_demo_data(db)
+
+    # Get the requested demo user
     demo_email = DEMO_PATIENT_EMAIL if role == "patient" else DEMO_DOCTOR_EMAIL
-
-    # Check if demo account already exists
     user = db.query(User).filter(User.email == demo_email).first()
-
-    if not user:
-        print(f"🎭 [DEMO-LOGIN] Demo {role} account not found. Creating...")
-        hashed = hash_password(DEMO_PASSWORD)
-        user = User(email=demo_email, hashed_password=hashed, role=role)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-        if role == "patient":
-            profile = PatientProfile(
-                user_id=user.id,
-                full_name="Demo Patient",
-                age=25,
-                gender="other"
-            )
-            db.add(profile)
-        else:
-            profile = DoctorProfile(
-                user_id=user.id,
-                full_name="Dr. Demo",
-                specialization="General Dentistry",
-                experience_years=5,
-                city="London",
-                qualifications="BDS, MDS",
-                clinic_name="Smilo Demo Clinic",
-                is_verified=True
-            )
-            db.add(profile)
-        db.commit()
-        print(f"✅ [DEMO-LOGIN] Demo {role} account created (id={user.id})")
-    else:
-        print(f"✅ [DEMO-LOGIN] Demo {role} account found (id={user.id})")
 
     # Fetch profile name
     full_name = ""

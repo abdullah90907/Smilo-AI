@@ -7,6 +7,7 @@ import {
   Scan,
   FileImage,
   MessageSquare,
+  MessageSquareText,
   TrendingUp,
   FileText,
   Calendar,
@@ -102,6 +103,7 @@ export default function UserSidebar() {
     { icon: TrendingUp, label: "Saved Analytics", path: "/dashboard/reports", badge: reportsCount > 0 ? reportsCount : undefined },
     { icon: Stethoscope, label: "Find Doctors", path: "/dashboard/doctors" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
+    { icon: MessageSquareText, label: "Consultation Chat", path: "/dashboard/consultation" },
     { icon: User, label: "My Profile", path: "/dashboard/profile" },
   ];
 

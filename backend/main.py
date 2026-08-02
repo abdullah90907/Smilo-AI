@@ -99,13 +99,28 @@ def get_current_patient(x_user_id: str = Header(None), db: Session = Depends(get
 app = FastAPI(title="Smilo AI Backend", version="1.0")
 
 # 1. CORS Setup
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from fastapi import Response
+
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    if request.method == "OPTIONS":
+        response = Response()
+        response.status_code = 204
+        origin = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-user-id, accept, origin"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-user-id, accept, origin"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # 2. Mount static files
 os.makedirs("static", exist_ok=True)
@@ -163,19 +178,7 @@ async def load_models():
     print("All models loaded!")
     
     
-# Add middleware to ensure CORS headers are set
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi import Response
 
-class AddCorsHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response: Response = await call_next(request)
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = '*'
-        response.headers['Access-Control-Allow-Headers'] = '*'
-        return response
-        
-app.add_middleware(AddCorsHeadersMiddleware)
 
 
 # --------------------------

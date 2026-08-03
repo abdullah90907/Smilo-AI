@@ -179,7 +179,17 @@ export const HeroSection = () => {
                     <Sparkles className="w-5 h-5 text-[#21b2c0]" />
                     Smilo AI Platform Walkthrough
                   </h3>
-                  <p className="text-xs text-muted-foreground">See U-Net Segmentation & YOLOv8 Caries Detection in action</p>
+                  <p className="text-xs text-muted-foreground">
+                    See U-Net Segmentation & YOLOv8 Caries Detection in action.{" "}
+                    <a 
+                      href="https://youtu.be/xDE81PqEjnI" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[#21b2c0] hover:underline font-semibold inline-flex items-center gap-1"
+                    >
+                      Watch on YouTube
+                    </a>
+                  </p>
                 </div>
                 <button
                   onClick={() => setIsVideoOpen(false)}
@@ -191,11 +201,13 @@ export const HeroSection = () => {
 
               {/* Walkthrough Video/GIF content container */}
               <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/40 border border-border flex items-center justify-center">
-                <img
-                  src="/smiloai.gif"
-                  alt="Smilo AI Demo Video"
-                  className="w-full h-full object-contain"
-                />
+                <iframe
+                  src="https://www.youtube.com/embed/xDE81PqEjnI?autoplay=1"
+                  title="Smilo AI Demo Walkthrough"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                ></iframe>
               </div>
             </motion.div>
           </motion.div>

@@ -1,13 +1,11 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Play, Stethoscope, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Play, Stethoscope } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { Button } from "../ui/button";
 import heroImage from "@/assets/hero-illustration.jpg";
 
 export const HeroSection = () => {
   const navigate = useNavigate();
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   return (
     <section
@@ -93,18 +91,20 @@ export const HeroSection = () => {
                 For Doctors
               </Button>
 
-              {/* Pulsating Interactive Watch Demo Button */}
-              <motion.button
+              {/* Pulsating Interactive Watch Demo Button - direct link to YouTube */}
+              <motion.a
+                href="https://youtu.be/xDE81PqEjnI"
+                target="_blank"
+                rel="noopener noreferrer"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setIsVideoOpen(true)}
                 className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full text-[#21b2c0] bg-[#21b2c0]/10 border border-[#21b2c0]/30 hover:bg-[#21b2c0]/20 font-semibold shadow-sm transition-all duration-300 relative group overflow-visible"
               >
                 {/* Soft pulse outline effect */}
                 <span className="absolute inset-0 bg-[#21b2c0]/20 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none opacity-75" />
                 <Play className="w-5 h-5 fill-[#21b2c0] text-[#21b2c0]" />
                 Watch Demo
-              </motion.button>
+              </motion.a>
             </motion.div>
 
             {/* Stats */}
@@ -153,66 +153,6 @@ export const HeroSection = () => {
           </motion.div>
         </div>
       </div>
-
-      {/* Demo Video/Walkthrough Modal */}
-      <AnimatePresence>
-        {isVideoOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsVideoOpen(false)}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl bg-card border border-border/80 rounded-3xl overflow-hidden shadow-2xl p-4 md:p-6"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/50">
-                <div>
-                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#21b2c0]" />
-                    Smilo AI Platform Walkthrough
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    See U-Net Segmentation & YOLOv8 Caries Detection in action.{" "}
-                    <a 
-                      href="https://youtu.be/xDE81PqEjnI" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-[#21b2c0] hover:underline font-semibold inline-flex items-center gap-1"
-                    >
-                      Watch on YouTube
-                    </a>
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsVideoOpen(false)}
-                  className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Walkthrough Video/GIF content container */}
-              <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/40 border border-border flex items-center justify-center">
-                <iframe
-                  src="https://www.youtube.com/embed/xDE81PqEjnI?autoplay=1"
-                  title="Smilo AI Demo Walkthrough"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="w-full h-full border-0"
-                ></iframe>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };

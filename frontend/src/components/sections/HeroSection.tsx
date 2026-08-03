@@ -101,7 +101,7 @@ export const HeroSection = () => {
                 className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full text-[#21b2c0] bg-[#21b2c0]/10 border border-[#21b2c0]/30 hover:bg-[#21b2c0]/20 font-semibold shadow-sm transition-all duration-300 relative group overflow-visible"
               >
                 {/* Soft pulse outline effect */}
-                <span className="absolute inset-0 bg-[#21b2c0]/20 rounded-full animate-ping pointer-events-none opacity-75" />
+                <span className="absolute inset-0 bg-[#21b2c0]/20 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none opacity-75" />
                 <Play className="w-5 h-5 fill-[#21b2c0] text-[#21b2c0]" />
                 Watch Demo
               </motion.button>

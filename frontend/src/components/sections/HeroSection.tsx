@@ -1,11 +1,13 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Play, Stethoscope } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Play, Stethoscope, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "../ui/button";
 import heroImage from "@/assets/hero-illustration.jpg";
 
 export const HeroSection = () => {
   const navigate = useNavigate();
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   return (
     <section
@@ -71,14 +73,14 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center"
             >
               <Button
                 size="lg"
                 className="gradient-primary text-primary-foreground hover:shadow-glow transition-all duration-300 text-lg px-8"
                 onClick={() => navigate("/auth")}
               >
-                Login / Register as Patient
+                Login as Patient
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button
@@ -90,6 +92,19 @@ export const HeroSection = () => {
                 <Stethoscope className="mr-2 w-5 h-5" />
                 For Doctors
               </Button>
+
+              {/* Pulsating Interactive Watch Demo Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsVideoOpen(true)}
+                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full text-[#21b2c0] bg-[#21b2c0]/10 border border-[#21b2c0]/30 hover:bg-[#21b2c0]/20 font-semibold shadow-sm transition-all duration-300 relative group overflow-visible"
+              >
+                {/* Soft pulse outline effect */}
+                <span className="absolute inset-0 bg-[#21b2c0]/20 rounded-full animate-ping pointer-events-none opacity-75" />
+                <Play className="w-5 h-5 fill-[#21b2c0] text-[#21b2c0]" />
+                Watch Demo
+              </motion.button>
             </motion.div>
 
             {/* Stats */}
@@ -138,6 +153,54 @@ export const HeroSection = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Demo Video/Walkthrough Modal */}
+      <AnimatePresence>
+        {isVideoOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsVideoOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-4xl bg-card border border-border/80 rounded-3xl overflow-hidden shadow-2xl p-4 md:p-6"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/50">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#21b2c0]" />
+                    Smilo AI Platform Walkthrough
+                  </h3>
+                  <p className="text-xs text-muted-foreground">See U-Net Segmentation & YOLOv8 Caries Detection in action</p>
+                </div>
+                <button
+                  onClick={() => setIsVideoOpen(false)}
+                  className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Walkthrough Video/GIF content container */}
+              <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/40 border border-border flex items-center justify-center">
+                <img
+                  src="/smiloai.gif"
+                  alt="Smilo AI Demo Video"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
